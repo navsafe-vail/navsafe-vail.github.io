@@ -307,43 +307,46 @@ function pathD(p1, p2) {
   const mx = (p1.x + p2.x) / 2;
   return `M ${p1.x} ${p1.y} C ${mx} ${p1.y}, ${mx} ${p2.y}, ${p2.x} ${p2.y}`;
 }
+// The wire set never changes, so the paths are created once and only ever
+// re-positioned. Rebuilding the svg on each layout pass re-created every path
+// at its default (undimmed) style; because edge() flushes layout mid-build the
+// browser adopted that as a transition start value and faded each wire back
+// out — which read as every wire flashing whenever a clip opened.
 let wireIndex = [];
-function drawWires() {
+function buildWires() {
   wires.innerHTML = ""; wireIndex = [];
+  for (const l of LEAVES) {
+    const a = ABILITIES.find(x => x.id === l.ab);
+    for (const kind of l.types.length ? ["AL", "LT"] : ["AL"]) {
+      const p = document.createElementNS("http://www.w3.org/2000/svg", "path");
+      // a live var() reference, not a resolved colour, so the stroke follows a
+      // light/dark switch without needing a rebuild
+      p.style.stroke = `var(${a.varc})`;
+      if (!l.types.length) p.setAttribute("stroke-dasharray", "4 4");
+      wires.appendChild(p);
+      wireIndex.push({ p, ab: l.ab, leaf: l.id, kind });
+    }
+  }
+}
+function drawWires() {
   // 1:1 coordinate mapping — a viewBox wider than the rendered svg would squash
   // every wire horizontally and pull its ends off the box borders.
   const W = board.scrollWidth, H = board.scrollHeight;
   wires.setAttribute("width", W); wires.setAttribute("height", H);
   wires.setAttribute("viewBox", `0 0 ${W} ${H}`);
-  for (const l of LEAVES) {
-    const p = document.createElementNS("http://www.w3.org/2000/svg", "path");
-    p.setAttribute("d", pathD(edge(abEl[l.ab], "r"), edge(leafEl[l.id], "l")));
-    const a = ABILITIES.find(x => x.id === l.ab);
-    p.style.stroke = getComputedStyle(document.documentElement).getPropertyValue(a.varc);
-    if (!l.types.length) p.setAttribute("stroke-dasharray", "4 4");
-    wires.appendChild(p);
-    wireIndex.push({ p, ab: l.ab, leaf: l.id, kind: "AL" });
-    if (l.types.length) {
-      const p2 = document.createElementNS("http://www.w3.org/2000/svg", "path");
-      p2.setAttribute("d", pathD(edge(leafEl[l.id], "r"), edge(typeGroupEl[l.id], "l")));
-      p2.style.stroke = p.style.stroke;
-      wires.appendChild(p2);
-      wireIndex.push({ p: p2, ab: l.ab, leaf: l.id, kind: "LT" });
-    }
+  for (const w of wireIndex) {
+    w.p.setAttribute("d", w.kind === "AL"
+      ? pathD(edge(abEl[w.ab], "r"), edge(leafEl[w.leaf], "l"))
+      : pathD(edge(leafEl[w.leaf], "r"), edge(typeGroupEl[w.leaf], "l")));
   }
-  // the paths above are brand-new elements, so the focus classes from the last
-  // setFocus() died with the old ones — re-apply them or opening a clip (which
-  // redraws) would light every wire back up.
-  paintWires();
 }
 
-// null = nothing focused, every wire at rest.
-let litLeafSet = null;
-function paintWires() {
+// null = nothing focused, every wire back at rest.
+function paintWires(litLeaves) {
   for (const w of wireIndex) {
-    const on = litLeafSet ? litLeafSet.has(w.leaf) : false;
+    const on = !!litLeaves && litLeaves.has(w.leaf);
     w.p.classList.toggle("on", on);
-    w.p.classList.toggle("off", !!litLeafSet && !on);
+    w.p.classList.toggle("off", !!litLeaves && !on);
   }
 }
 
@@ -429,15 +432,14 @@ function setFocus(f) {
   for (const [t, o] of Object.entries(typeEls))
     o.el.classList.toggle("dim", !litTypes.has(t)),
     o.el.classList.toggle("lit2", litTypes.has(t));
-  litLeafSet = litLeaves;
-  paintWires();
+  paintWires(litLeaves);
 }
 function clearFocus() {
   document.querySelectorAll(".dim,.lit,.lit2").forEach(e => e.classList.remove("dim","lit","lit2"));
-  litLeafSet = null;
-  paintWires();
+  paintWires(null);
 }
 
+buildWires();
 drawWires();
 addEventListener("resize", () => { drawWires(); if (pinned) pinned.click(), pinned = null; });
 new ResizeObserver(() => drawWires()).observe(board);
