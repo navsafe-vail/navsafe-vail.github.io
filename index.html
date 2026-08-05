@@ -331,6 +331,20 @@ function drawWires() {
       wireIndex.push({ p: p2, ab: l.ab, leaf: l.id, kind: "LT" });
     }
   }
+  // the paths above are brand-new elements, so the focus classes from the last
+  // setFocus() died with the old ones — re-apply them or opening a clip (which
+  // redraws) would light every wire back up.
+  paintWires();
+}
+
+// null = nothing focused, every wire at rest.
+let litLeafSet = null;
+function paintWires() {
+  for (const w of wireIndex) {
+    const on = litLeafSet ? litLeafSet.has(w.leaf) : false;
+    w.p.classList.toggle("on", on);
+    w.p.classList.toggle("off", !!litLeafSet && !on);
+  }
 }
 
 // scenario clips: one panel per type that has a clip, appended after its chip.
@@ -415,15 +429,13 @@ function setFocus(f) {
   for (const [t, o] of Object.entries(typeEls))
     o.el.classList.toggle("dim", !litTypes.has(t)),
     o.el.classList.toggle("lit2", litTypes.has(t));
-  for (const w of wireIndex) {
-    const on = litLeaves.has(w.leaf);
-    w.p.classList.toggle("on", on);
-    w.p.classList.toggle("off", !on);
-  }
+  litLeafSet = litLeaves;
+  paintWires();
 }
 function clearFocus() {
   document.querySelectorAll(".dim,.lit,.lit2").forEach(e => e.classList.remove("dim","lit","lit2"));
-  wireIndex.forEach(w => w.p.classList.remove("on","off"));
+  litLeafSet = null;
+  paintWires();
 }
 
 drawWires();
