@@ -48,13 +48,15 @@
   .legendline .ghosty { border: 1.5px dashed var(--ghost); width: 15px; height: 10px; border-radius: 3px; background: none; }
 
   #wrap { position: relative; padding: 18px 32px 48px; overflow-x: auto; }
-  #board { position: relative; min-width: 1080px; }
-  svg#wires { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; }
+  #board { position: relative; min-width: 1160px; }
+  svg#wires { position: absolute; top: 0; left: 0; pointer-events: none; overflow: visible; }
   svg#wires path { fill: none; stroke: var(--wire); stroke-width: 1.1; opacity: 0.55; transition: opacity .12s, stroke-width .12s; }
   svg#wires path.on { stroke-width: 2.2; opacity: 1; }
   svg#wires path.off { opacity: 0.08; }
 
-  .cols { display: grid; grid-template-columns: 250px 1fr 290px; gap: 90px; position: relative; }
+  /* leaf labels are short and fixed-length; the type names are the longest strings
+     on the page, so the slack belongs to the last column, not the middle one. */
+  .cols { display: grid; grid-template-columns: 250px 300px minmax(440px, 1fr); gap: 72px; position: relative; }
   .colhead {
     font-size: 11px; font-weight: 700; letter-spacing: 0.12em; text-transform: uppercase;
     color: var(--ink-dim); margin: 0 0 10px;
@@ -103,6 +105,25 @@
     border-radius: 0 3px 3px 0;
   }
   .type:hover { background: var(--line); }
+  .type.hasclip::after {
+    content: "▸"; color: var(--ac); font-size: 9px; margin-left: 6px;
+    display: inline-block; transition: transform .12s;
+  }
+  .type.hasclip.open::after { transform: rotate(90deg); }
+
+  /* scenario clips */
+  .clippanel { display: none; margin: 4px 0 8px 10px; width: 100%; max-width: 560px; }
+  .clippanel.open { display: block; }
+  .clippanel .frame {
+    position: relative; aspect-ratio: 1333 / 480; border: 1px solid var(--line);
+    border-radius: 6px; overflow: hidden; background: var(--panel);
+  }
+  .clippanel video { display: block; width: 100%; height: 100%; object-fit: cover; cursor: pointer; }
+  .clippanel .status {
+    position: absolute; inset: 0; display: flex; align-items: center; justify-content: center;
+    font: 11px/1 ui-monospace, Menlo, monospace; color: var(--ink-dim);
+  }
+  .clippanel.loaded .status { display: none; }
 
   .dim { opacity: 0.18; }
   .lit { box-shadow: 0 0 0 1.5px var(--ac); }
@@ -116,7 +137,8 @@
 <header>
   <h1>NavSafe ability map</h1>
   <p>73 mined nuPlan scenario types → 28 taxonomy leaves → 6 multiabilities. Every leaf has exactly one ability home; every type has exactly one leaf.</p>
-  <p class="hint">Hover or tap anything to trace its connections. Click to pin, click again to release.</p>
+  <p class="hint">Hover or tap anything to trace its connections. Click to pin, click again to release.
+  Scenario types marked <b>▸</b> have a rendered clip — click to expand it.</p>
 </header>
 <div class="legendline" id="legend"></div>
 
@@ -183,6 +205,37 @@ const colA = document.getElementById("colA"),
       board = document.getElementById("board");
 
 // legend
+// scenario-type clips. key = nuPlan scenario type, value = file under CLIP_BASE.
+// The suffix on each filename is the nuPlan scenario token the clip was rendered from.
+// Partial coverage by design — types without an entry just have no clip yet.
+const CLIP_BASE = "clips/";
+const CLIPS = {
+  following_lane_without_lead: "following_lane_without_lead-0ce170237acd51c2h1.mp4",
+  high_lateral_acceleration: "high_lateral_acceleration-467879c3d37054f5h1.mp4",
+  high_magnitude_speed: "high_magnitude_speed-112db94505025ec5h1.mp4",
+  low_magnitude_speed: "low_magnitude_speed-56c64f7e47b15e0dh2.mp4",
+  medium_magnitude_speed: "medium_magnitude_speed-07846b829b3a575eh1.mp4",
+  near_construction_zone_sign: "near_construction_zone_sign-9ef1d618435d5e53h1.mp4",
+  near_long_vehicle: "near_long_vehicle-087023402a695ba3h1.mp4",
+  near_multiple_vehicles: "near_multiple_vehicles-580dac44fa305877h1.mp4",
+  near_pedestrian_on_crosswalk: "near_pedestrian_on_crosswalk-132307b3c1a55f97h1.mp4",
+  near_trafficcone_on_driveable: "near_trafficcone_on_driveable-3067f3d3d5a75989h1.mp4",
+  on_carpark: "on_carpark-771c4e378bef58e4h1.mp4",
+  on_intersection: "on_intersection-05f1a5cbc0905d8eh1.mp4",
+  on_pickup_dropoff: "on_pickup_dropoff-0fde069313a35062h1.mp4",
+  on_stopline_crosswalk: "on_stopline_crosswalk-0802a51b0a1d512ch1.mp4",
+  on_stopline_stop_sign: "on_stopline_stop_sign-0dd3256035e75770h1.mp4",
+  on_stopline_traffic_light: "on_stopline_traffic_light-67bce1e28df25eaah1.mp4",
+  on_traffic_light_intersection: "on_traffic_light_intersection-02a81792cbdb5dd5h1.mp4",
+  starting_protected_cross_turn: "starting_protected_cross_turn-34489cf42e005e93h2.mp4",
+  starting_protected_noncross_turn: "starting_protected_noncross_turn-442b2cf63c6f570ah1.mp4",
+  starting_right_turn: "starting_right_turn-813c23718919507ah1.mp4",
+  starting_unprotected_cross_turn: "starting_unprotected_cross_turn-2391f12d7e6a5e7fh1.mp4",
+  stationary: "stationary-082988f40658562ch1.mp4",
+  traversing_intersection: "traversing_intersection-02b68b9cc51f506ah1.mp4",
+  traversing_traffic_light_intersection: "traversing_traffic_light_intersection-00c1e4eb4a045f20h1.mp4",
+};
+
 const legend = document.getElementById("legend");
 for (const a of ABILITIES) {
   const s = document.createElement("span");
@@ -192,6 +245,9 @@ for (const a of ABILITIES) {
 const g = document.createElement("span");
 g.innerHTML = `<i class="ghosty"></i>empty leaf — episodes generated, not mined`;
 legend.appendChild(g);
+const gc = document.createElement("span");
+gc.innerHTML = `<b>▸</b>&nbsp;scenario type with a clip (${Object.keys(CLIPS).length} of 73)`;
+legend.appendChild(gc);
 
 // build ability nodes
 const abEl = {};
@@ -230,18 +286,20 @@ for (const l of LEAVES) {
     grp.className = "typegroup";
     for (const t of l.types) {
       const te = document.createElement("div");
-      te.className = "type"; te.textContent = t;
+      te.className = "type" + (CLIPS[t] ? " hasclip" : ""); te.textContent = t;
       te.style.setProperty("--ac", `var(${a.varc})`);
       grp.appendChild(te);
-      typeEls[t] = { el: te, leaf: l.id };
-      bindHover(te, () => setFocus({ type: t, leaf: l.id }));
+      const panel = CLIPS[t] ? makeClipPanel(t, grp) : null;
+      typeEls[t] = { el: te, leaf: l.id, panel };
+      bindHover(te, () => setFocus({ type: t, leaf: l.id }), () => openClip(panel, te));
     }
     colT.appendChild(grp); typeGroupEl[l.id] = grp;
   }
 }
 
-// wires
-function center(el, side) {
+// wires — every wire leaves the middle of a box's right border and lands on the
+// middle of the next box's left border, entering/exiting horizontally.
+function edge(el, side) {
   const b = board.getBoundingClientRect(), r = el.getBoundingClientRect();
   return { x: (side === "r" ? r.right : r.left) - b.left, y: r.top + r.height / 2 - b.top };
 }
@@ -252,10 +310,14 @@ function pathD(p1, p2) {
 let wireIndex = [];
 function drawWires() {
   wires.innerHTML = ""; wireIndex = [];
-  wires.setAttribute("viewBox", `0 0 ${board.scrollWidth} ${board.scrollHeight}`);
+  // 1:1 coordinate mapping — a viewBox wider than the rendered svg would squash
+  // every wire horizontally and pull its ends off the box borders.
+  const W = board.scrollWidth, H = board.scrollHeight;
+  wires.setAttribute("width", W); wires.setAttribute("height", H);
+  wires.setAttribute("viewBox", `0 0 ${W} ${H}`);
   for (const l of LEAVES) {
     const p = document.createElementNS("http://www.w3.org/2000/svg", "path");
-    p.setAttribute("d", pathD(center(abEl[l.ab], "r"), center(leafEl[l.id], "l")));
+    p.setAttribute("d", pathD(edge(abEl[l.ab], "r"), edge(leafEl[l.id], "l")));
     const a = ABILITIES.find(x => x.id === l.ab);
     p.style.stroke = getComputedStyle(document.documentElement).getPropertyValue(a.varc);
     if (!l.types.length) p.setAttribute("stroke-dasharray", "4 4");
@@ -263,11 +325,7 @@ function drawWires() {
     wireIndex.push({ p, ab: l.ab, leaf: l.id, kind: "AL" });
     if (l.types.length) {
       const p2 = document.createElementNS("http://www.w3.org/2000/svg", "path");
-      const first = typeEls[l.types[0]].el, last = typeEls[l.types[l.types.length-1]].el;
-      const c1 = center(first, "l"), c2 = center(last, "l");
-      const lc = center(leafEl[l.id], "r");
-      const mid = { x: c1.x, y: (c1.y + c2.y) / 2 };
-      p2.setAttribute("d", pathD(lc, mid));
+      p2.setAttribute("d", pathD(edge(leafEl[l.id], "r"), edge(typeGroupEl[l.id], "l")));
       p2.style.stroke = p.style.stroke;
       wires.appendChild(p2);
       wireIndex.push({ p: p2, ab: l.ab, leaf: l.id, kind: "LT" });
@@ -275,18 +333,64 @@ function drawWires() {
   }
 }
 
+// scenario clips: one panel per type that has a clip, appended after its chip.
+// src is attached on first open (preload="none"), so a visitor downloads only
+// what they actually click; the open clip is paused and unloaded on close.
+let shownClip = null;
+function makeClipPanel(t, grp) {
+  const panel = document.createElement("div");
+  panel.className = "clippanel";
+  panel.dataset.file = CLIPS[t];
+  panel.innerHTML = `<div class="frame"><div class="status">loading clip…</div></div>`;
+  const v = document.createElement("video");
+  v.loop = v.muted = v.playsInline = true;
+  v.preload = "none";
+  v.setAttribute("aria-label", t);
+  v.addEventListener("loadeddata", () => { panel.classList.add("loaded"); drawWires(); });
+  v.addEventListener("error", () => {
+    panel.querySelector(".status").textContent = "clip unavailable";
+  });
+  // click the frame to pause/resume
+  v.addEventListener("click", () => { v.paused ? v.play() : v.pause(); });
+  panel.querySelector(".frame").appendChild(v);
+  panel.addEventListener("click", e => e.stopPropagation());
+  grp.appendChild(panel);
+  return panel;
+}
+function closeClip() {
+  if (!shownClip) return;
+  shownClip.panel.querySelector("video").pause();
+  shownClip.panel.classList.remove("open");
+  shownClip.chip.classList.remove("open");
+  shownClip = null;
+  drawWires();
+}
+function openClip(panel, chip) {
+  closeClip();
+  if (!panel) return;
+  const v = panel.querySelector("video");
+  if (!v.src) v.src = CLIP_BASE + panel.dataset.file;
+  v.play().catch(() => {});
+  panel.classList.add("open");
+  chip.classList.add("open");
+  shownClip = { panel, chip };
+  drawWires();
+  // the panel is wider than the type column, so nudge it into view
+  panel.scrollIntoView({ block: "nearest", inline: "nearest", behavior: "smooth" });
+}
+
 // focus logic: hover = transient, click = pin
 let pinned = null;
-function bindHover(el, fn) {
+function bindHover(el, fn, onPin) {
   el.addEventListener("mouseenter", () => { if (!pinned) fn(); });
   el.addEventListener("mouseleave", () => { if (!pinned) clearFocus(); });
   el.addEventListener("click", (e) => {
     e.stopPropagation();
-    if (pinned === el) { pinned = null; clearFocus(); }
-    else { pinned = el; fn(); }
+    if (pinned === el) { pinned = null; clearFocus(); closeClip(); }
+    else { pinned = el; fn(); onPin ? onPin() : closeClip(); }
   });
 }
-document.body.addEventListener("click", () => { pinned = null; clearFocus(); });
+document.body.addEventListener("click", () => { pinned = null; clearFocus(); closeClip(); });
 
 function setFocus(f) {
   const litLeaves = new Set(), litAbs = new Set(), litTypes = new Set();
