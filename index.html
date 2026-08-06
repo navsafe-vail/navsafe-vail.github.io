@@ -6,6 +6,9 @@
     --a1: #4A7AA6; --a2: #6E8B4E; --a3: #C08A3E;
     --a4: #7A6AA6; --a5: #B05B6E; --a6: #3E8B8B;
     --wire: #CFCBC2;
+    /* wide enough for the longest type name (~358px) plus bar and count, so the
+       numbers stay next to the names instead of drifting to the column edge */
+    --typew: 480px;
   }
   @media (prefers-color-scheme: dark) {
     :root {
@@ -42,6 +45,36 @@
   }
   header p { margin: 6px 0 0; color: var(--ink-dim); max-width: 68ch; }
   header .hint { font-size: 12.5px; }
+  /* navhard statistics strip */
+  .statstrip {
+    display: flex; flex-wrap: wrap; align-items: flex-end; gap: 14px 26px;
+    padding: 14px 32px 0;
+  }
+  .stat { display: flex; flex-direction: column; gap: 3px; }
+  .stat .k {
+    font-size: 10px; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase;
+    color: var(--ink-dim);
+  }
+  .stat .v { font-size: 13.5px; font-variant-numeric: tabular-nums; }
+  .stat .v em { font-style: normal; font-size: 11.5px; color: var(--ink-dim); }
+  .stat .v code { font: 11.5px ui-monospace, Menlo, monospace; }
+  .mapbar { display: flex; width: 210px; height: 9px; border-radius: 3px; overflow: hidden; }
+  .mapbar i { display: block; height: 100%; }
+  .convsel {
+    display: inline-flex; background: var(--panel); border: 1px solid var(--line);
+    border-radius: 6px; overflow: hidden;
+  }
+  .convsel button {
+    appearance: none; border: 0; background: none; cursor: pointer; color: var(--ink-dim);
+    font: 11px/1 ui-monospace, Menlo, monospace; padding: 7px 11px;
+  }
+  .convsel button + button { border-left: 1px solid var(--line); }
+  .convsel button:hover { color: var(--ink); }
+  .convsel button[aria-pressed="true"] {
+    background: color-mix(in srgb, var(--ink) 10%, transparent); color: var(--ink); font-weight: 700;
+  }
+  .convnote { padding: 8px 32px 0; font-size: 11.5px; color: var(--ink-dim); max-width: 82ch; }
+
   .legendline { display: flex; gap: 18px; flex-wrap: wrap; padding: 10px 32px 0; }
   .legendline span { font-size: 12px; color: var(--ink-dim); display: inline-flex; align-items: center; gap: 6px; }
   .legendline i { width: 18px; height: 3px; border-radius: 2px; display: inline-block; }
@@ -62,6 +95,7 @@
     color: var(--ink-dim); margin: 0 0 10px;
   }
   .col { display: flex; flex-direction: column; }
+  .colhead.headT { display: flex; justify-content: space-between; width: var(--typew); padding-left: 10px; }
 
   /* abilities */
   .ability {
@@ -95,6 +129,9 @@
   }
   .leaf.empty { border-style: dashed; background: transparent; }
   .leaf.empty b { color: var(--ink-dim); font-weight: 500; }
+  /* mined types exist, but none of them occurs in navhard under this convention */
+  .leaf.novh .dot { background: none; box-shadow: inset 0 0 0 1.5px var(--ac); }
+  .leaf.novh .n { color: var(--a5); font-weight: 700; }
 
   /* types */
   .typegroup { margin-bottom: 4px; }
@@ -102,14 +139,31 @@
     font: 11px/1.5 ui-monospace, "SF Mono", Menlo, Consolas, monospace;
     color: var(--ink); padding: 1.5px 8px 1.5px 10px; border-left: 2px solid var(--wire);
     cursor: pointer; white-space: nowrap; transition: opacity .12s, border-color .12s, background .12s;
-    border-radius: 0 3px 3px 0;
+    border-radius: 0 3px 3px 0; display: flex; align-items: center; gap: 8px;
+    width: var(--typew);
   }
   .type:hover { background: var(--line); }
-  .type.hasclip::after {
+  .type .tn { flex: none; }
+  .type.hasclip .tn::after {
     content: "▸"; color: var(--ac); font-size: 9px; margin-left: 6px;
     display: inline-block; transition: transform .12s;
   }
-  .type.hasclip.open::after { transform: rotate(90deg); }
+  .type.hasclip.open .tn::after { transform: rotate(90deg); }
+  /* the bar track sits flush right so every bar starts at the same x, whatever
+     the type name's length — otherwise magnitudes are impossible to compare. */
+  .type .bar {
+    flex: none; margin-left: auto; width: 58px; height: 4px; border-radius: 2px;
+    background: color-mix(in srgb, var(--ink) 9%, transparent); overflow: hidden;
+  }
+  .type .bar i { display: block; height: 100%; border-radius: 2px; background: var(--ac); transition: width .18s; }
+  .type .cnt {
+    flex: none; width: 26px; text-align: right; color: var(--ink-dim);
+    font-variant-numeric: tabular-nums;
+  }
+  /* absent from navhard under the selected convention */
+  .type.zero { border-left-style: dotted; }
+  .type.zero .tn, .type.zero .cnt { color: var(--ink-dim); }
+  .type.zero .bar { opacity: 0.4; }
 
   /* scenario clips */
   .clippanel { display: none; margin: 4px 0 8px 10px; width: 100%; max-width: 560px; }
@@ -129,7 +183,8 @@
   .lit { box-shadow: 0 0 0 1.5px var(--ac); }
   .type.lit2 { border-left-color: var(--ac); background: color-mix(in srgb, var(--ac) 12%, transparent); box-shadow: none; }
 
-  footer { padding: 0 32px 40px; color: var(--ink-dim); font-size: 12px; max-width: 78ch; }
+  footer { padding: 0 32px 40px; color: var(--ink-dim); font-size: 12px; max-width: 82ch; }
+  footer p { margin: 0 0 8px; }
   footer code { font-family: ui-monospace, Menlo, monospace; font-size: 11px; }
   @media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
 </style>
@@ -138,8 +193,11 @@
   <h1>NavSafe ability map</h1>
   <p>73 mined nuPlan scenario types → 28 taxonomy leaves → 6 multiabilities. Every leaf has exactly one ability home; every type has exactly one leaf.</p>
   <p class="hint">Hover or tap anything to trace its connections. Click to pin, click again to release.
-  Scenario types marked <b>▸</b> have a rendered clip — click to expand it.</p>
+  Scenario types marked <b>▸</b> have a rendered clip — click to expand it.
+  The bar and number on each type are how many of the <b>421 navhard scenes</b> contain it.</p>
 </header>
+<div class="statstrip" id="strip"></div>
+<p class="convnote" id="convnote"></p>
 <div class="legendline" id="legend"></div>
 
 <div id="wrap"><div id="board">
@@ -147,15 +205,25 @@
   <div class="cols">
     <div class="col" id="colA"><div class="colhead">Multiabilities (scored by SR)</div></div>
     <div class="col" id="colL"><div class="colhead">Taxonomy leaves (28)</div></div>
-    <div class="col" id="colT"><div class="colhead">nuPlan scenario types (73)</div></div>
+    <div class="col" id="colT"><div class="colhead headT">
+      <span>nuPlan scenario types (73)</span><span id="scenehead">navhard scenes</span>
+    </div></div>
   </div>
 </div></div>
 
 <footer>
-  Dashed leaves are unpopulated by log mining — their episodes must be generated
+  <p>Dashed leaves are unpopulated by log mining — their episodes must be generated
   (<code>C-9 C-10 V-10 V-11 R-3 R-4 I-3</code>, and <code>C-8</code> is context-only:
   <code>on_carpark</code> supplies the setting, not the event). Source:
-  <code>docs/research/Navsafe_taxonomy_short.md</code> §§1–4, §8.2.
+  <code>docs/research/Navsafe_taxonomy_short.md</code> §§1–4, §8.2.</p>
+
+  <p>Counts are <b>scenarios, not frames</b>: a type hit on several frames of one scene counts
+  once, and a scene can hold several types — so the numbers overlap and never sum to 421. That is
+  why leaves and abilities report <i>how many of their types occur</i> rather than a scene total.
+  Under <code>s44</code>, <b>C-7 Head-On</b> and <b>V-8 Illegal U-Turn</b> are mined leaves whose
+  every type has zero navhard scenes. Statistics source:
+  <code>docs/navhard_scenario_stats.md</code> (computed 2026-08-04) from
+  <code>navhard_md_logs</code> descriptors + the nuPlan <code>scenario_tag</code> table.</p>
 </footer>
 
 <script>
@@ -236,6 +304,144 @@ const CLIPS = {
   traversing_traffic_light_intersection: "traversing_traffic_light_intersection-00c1e4eb4a045f20h1.mp4",
 };
 
+// navhard scenario-type statistics — scene counts out of the 421 navhard scenes,
+// under the four counting conventions, plus the nuPlan-wide raw `scenario_tag`
+// row count for scale. Source: docs/navhard_scenario_stats.md §3 (computed
+// 2026-08-04). Counts are SCENARIOS, not frames: a type hit on several frames of
+// one scene counts once, and one scene can hold several types — so these never
+// sum to 421 and must never be added up across types.
+//                      anchor  s44   20s  21.5s   nuPlan rows
+const STATS = {
+  medium_magnitude_speed:                                 [ 39, 316, 338, 345,   8028726],
+  on_intersection:                                        [107, 321, 315, 321,  13121250],
+  traversing_intersection:                                [ 86, 305, 299, 307,   9165954],
+  traversing_crosswalk:                                   [ 29, 264, 259, 270,   1609702],
+  starting_straight_stop_sign_intersection_traversal:     [  0,  17, 174, 188,     59837],
+  high_magnitude_speed:                                   [ 23, 145, 149, 154,   6764518],
+  high_lateral_acceleration:                              [  1,  84, 143, 153,    170299],
+  on_stopline_crosswalk:                                  [ 10, 134, 125, 139,    756768],
+  traversing_traffic_light_intersection:                  [ 45, 132, 130, 132,   7141498],
+  stationary:                                             [  8, 127, 118, 127,  27587054],
+  on_traffic_light_intersection:                          [ 43, 126, 123, 126,   8455888],
+  starting_straight_traffic_light_intersection_traversal: [  0,  10,  84,  98,     49898],
+  on_stopline_stop_sign:                                  [ 11,  97,  85,  97,   1261465],
+  following_lane_without_lead:                            [ 27,  85,  91,  95,    996437],
+  on_stopline_traffic_light:                              [  6,  86,  74,  91,   3539737],
+  low_magnitude_speed:                                    [  8,  68,  76,  81,   1386593],
+  starting_right_turn:                                    [  3,  72,  66,  72,    144618],
+  near_long_vehicle:                                      [  3,  68,  63,  68,   1447567],
+  starting_left_turn:                                     [  8,  58,  40,  60,    131037],
+  starting_protected_noncross_turn:                       [  3,  44,  39,  44,     96297],
+  near_pedestrian_on_crosswalk:                           [  1,  37,  41,  43,  11468020],
+  near_trafficcone_on_driveable:                          [  2,  40,  40,  40,    710512],
+  near_multiple_vehicles:                                 [  2,  22,  37,  37,    474857],
+  starting_unprotected_noncross_turn:                     [  1,  35,  34,  35,     42025],
+  on_all_way_stop_intersection:                           [  8,  34,  34,  34,    569183],
+  starting_protected_cross_turn:                          [  3,  34,  22,  34,     50211],
+  starting_unprotected_cross_turn:                        [  4,  23,  16,  25,     87122],
+  on_pickup_dropoff:                                      [ 18,  22,  22,  22,  10960678],
+  traversing_pickup_dropoff:                              [ 16,  22,  22,  22,   5103402],
+  on_carpark:                                             [  2,  19,  18,  19,    449495],
+  stopping_at_crosswalk:                                  [  0,  12,  19,  19,     41271],
+  near_pedestrian_at_pickup_dropoff:                      [  2,  16,  16,  16,   2518199],
+  changing_lane:                                          [  0,   2,  14,  14,      4050],
+  stationary_in_traffic:                                  [  0,  14,  12,  14,   4973462],
+  stopping_with_lead:                                     [  0,   6,  14,  14,     19692],
+  stopping_at_stop_sign_without_lead:                     [  0,   5,  12,  12,     21470],
+  near_construction_zone_sign:                            [  2,   6,   8,  10,    316483],
+  near_high_speed_vehicle:                                [  0,  10,  10,  10,    476076],
+  starting_high_speed_turn:                               [  0,   6,   9,  10,     16940],
+  stationary_at_traffic_light_with_lead:                  [  0,   9,   8,   9,    922626],
+  stopping_at_stop_sign_no_crosswalk:                     [  0,   5,   7,   9,     17527],
+  accelerating_at_crosswalk:                              [  0,   2,   6,   8,      9726],
+  accelerating_at_stop_sign:                              [  0,   4,   4,   8,     19488],
+  behind_bike:                                            [  2,   8,   6,   8,     15821],
+  changing_lane_to_right:                                 [  0,   2,   8,   8,      1835],
+  following_lane_with_slow_lead:                          [  0,   8,   6,   8,    281305],
+  near_pedestrian_on_crosswalk_with_ego:                  [  0,   2,   7,   8,     83028],
+  changing_lane_to_left:                                  [  0,   0,   6,   6,      2215],
+  stationary_at_traffic_light_without_lead:               [  0,   6,   4,   6,   2474732],
+  accelerating_at_traffic_light:                          [  0,   4,   4,   4,     62113],
+  accelerating_at_traffic_light_without_lead:             [  0,   4,   4,   4,     57658],
+  following_lane_with_lead:                               [  0,   4,   4,   4,     23885],
+  high_magnitude_jerk:                                    [  0,   0,   4,   4,      1269],
+  near_barrier_on_driveable:                              [  0,   2,   4,   4,    430239],
+  stopping_at_stop_sign_with_lead:                        [  0,   2,   4,   4,      2861],
+  stopping_at_traffic_light_with_lead:                    [  0,   2,   4,   4,      2861],
+  stopping_at_traffic_light_without_lead:                 [  0,   2,   4,   4,     12789],
+  behind_pedestrian_on_driveable:                         [  0,   2,   2,   2,      3769],
+  starting_low_speed_turn:                                [  0,   2,   0,   2,     12988],
+  waiting_for_pedestrian_to_cross:                        [  0,   0,   2,   2,     63883],
+  accelerating_at_stop_sign_no_crosswalk:                 [  0,   0,   0,   0,      6157],
+  accelerating_at_traffic_light_with_lead:                [  0,   0,   0,   0,      4820],
+  behind_long_vehicle:                                    [  0,   0,   0,   0,    159187],
+  behind_pedestrian_on_pickup_dropoff:                    [  0,   0,   0,   0,      2672],
+  changing_lane_with_lead:                                [  0,   0,   0,   0,        11],
+  changing_lane_with_trail:                               [  0,   0,   0,   0,        63],
+  crossed_by_bike:                                        [  0,   0,   0,   0,       118],
+  crossed_by_vehicle:                                     [  0,   0,   0,   0,      1023],
+  near_multiple_bikes:                                    [  0,   0,   0,   0,       129],
+  near_multiple_pedestrians:                              [  0,   0,   0,   0,     60619],
+  starting_u_turn:                                        [  0,   0,   0,   0,       538],
+  stationary_at_crosswalk:                                [  0,   0,   0,   0,      7478],
+  traversing_narrow_lane:                                 [  0,   0,   0,   0,       988],
+};
+
+// Which frames of a scene you look at decides which types that scene "has":
+// `scenario_tag` is a per-frame record at 20 Hz, while a navhard scene is 44
+// frames sampled at 2 Hz across 21.5 s. Same scenes, very different numbers —
+// hence the switch rather than one canonical column. (stats doc §1.2)
+const CONV = [
+  { id:"anchor", i:0, label:"anchor", note:
+    "the single frame at t=0 — <b>the official nuPlan / NAVSIM definition</b>, and the only one comparable with published nuPlan distributions. 186 of the 421 scenes carry no tag at all on that frame." },
+  { id:"s44", i:1, label:"s44", note:
+    "union over the 44 sampled 2 Hz frames — “this clip contains X at some point”. Sees 1 in 10 native 20 Hz frames, so instantaneous tags are undercounted (<code>starting_straight_stop_sign_intersection_traversal</code>: 17 here vs 188 over the full window)." },
+  { id:"w215", i:3, label:"21.5 s", note:
+    "every 20 Hz frame of the whole window (1.5 s history + anchor + 20 s future) — the upper bound on coverage." },
+];
+let conv = CONV[1];                                    // s44 by default
+const nOf = t => (STATS[t] || [0, 0, 0, 0, 0])[conv.i];
+const ALLTYPES = LEAVES.flatMap(l => l.types);
+const SCENES = 421;
+const MAPS = [
+  ["us-pa-pittsburgh-hazelwood", 168, "--a1"],
+  ["us-ma-boston", 112, "--a3"],
+  ["sg-one-north", 83, "--a2"],
+  ["us-nv-las-vegas-strip", 58, "--a4"],
+];
+
+const strip = document.getElementById("strip"), convnote = document.getElementById("convnote");
+function renderStrip() {
+  const counts = ALLTYPES.map(nOf);
+  const covered = counts.filter(c => c > 0).length;
+  const over10 = counts.filter(c => c > 10).length;
+  const top = ALLTYPES[counts.indexOf(Math.max(...counts))], topN = Math.max(...counts);
+  strip.innerHTML = `
+    <div class="stat"><span class="k">Counting convention</span><span class="convsel">${
+      CONV.map(c => `<button data-c="${c.id}" aria-pressed="${c === conv}">${c.label}</button>`).join("")
+    }</span></div>
+    <div class="stat"><span class="k">navhard</span>
+      <span class="v">${SCENES} scenes <em>· 72 nuPlan logs · 4 maps</em></span></div>
+    <div class="stat"><span class="k">Per scene</span>
+      <span class="v">44 frames @ 2 Hz <em>= 21.5 s</em></span></div>
+    <div class="stat"><span class="k">Types present</span>
+      <span class="v">${covered} / 73 <em>· ${over10} with &gt; 10 scenes</em></span></div>
+    <div class="stat"><span class="k">Most common</span>
+      <span class="v"><code>${top}</code> ${topN} <em>= ${Math.round(topN / SCENES * 100)}% of scenes</em></span></div>
+    <div class="stat"><span class="k">Maps</span><span class="mapbar" title="${
+      MAPS.map(([m, n]) => `${m} ${n}`).join(" · ")
+    }">${MAPS.map(([m, n, v]) =>
+      `<i style="width:${n / SCENES * 100}%;background:var(${v})"></i>`).join("")
+    }</span></div>`;
+  convnote.innerHTML = `<b>${conv.label}</b> — ${conv.note}`;
+  for (const b of strip.querySelectorAll(".convsel button"))
+    b.addEventListener("click", e => {
+      e.stopPropagation();
+      conv = CONV.find(c => c.id === b.dataset.c);
+      applyStats();
+    });
+}
+
 const legend = document.getElementById("legend");
 for (const a of ABILITIES) {
   const s = document.createElement("span");
@@ -248,22 +454,23 @@ legend.appendChild(g);
 const gc = document.createElement("span");
 gc.innerHTML = `<b>▸</b>&nbsp;scenario type with a clip (${Object.keys(CLIPS).length} of 73)`;
 legend.appendChild(gc);
+const gz = document.createElement("span");
+gz.innerHTML = `<i style="background:var(--wire)"></i>dotted type — 0 navhard scenes under this convention`;
+legend.appendChild(gz);
 
 // build ability nodes
-const abEl = {};
+const abEl = {}, abTag = {};
 for (const a of ABILITIES) {
-  const leaves = LEAVES.filter(l => l.ab === a.id);
-  const nTypes = leaves.reduce((s, l) => s + l.types.length, 0);
   const d = document.createElement("div");
   d.className = "ability"; d.style.setProperty("--ac", `var(${a.varc})`);
   d.innerHTML = `<b>${a.id} · ${a.name}</b><small>${a.anchor}</small>
-    <span class="tag">${leaves.length} leaves · ${nTypes} types</span>`;
-  colA.appendChild(d); abEl[a.id] = d;
+    <span class="tag"></span>`;
+  colA.appendChild(d); abEl[a.id] = d; abTag[a.id] = d.querySelector(".tag");
   bindHover(d, () => setFocus({ ab: a.id }));
 }
 
 // build leaf + type nodes, grouped by taxonomy class
-const leafEl = {}, typeEls = {}, typeGroupEl = {};
+const leafEl = {}, leafN = {}, typeEls = {}, typeGroupEl = {};
 let lastCls = null;
 for (const l of LEAVES) {
   if (l.cls !== lastCls) {
@@ -276,9 +483,11 @@ for (const l of LEAVES) {
   const d = document.createElement("div");
   d.className = "leaf" + (l.types.length ? "" : " empty");
   d.style.setProperty("--ac", `var(${a.varc})`);
-  const count = l.note ? l.note : (l.types.length ? `${l.types.length} type${l.types.length>1?"s":""}` : "generated");
-  d.innerHTML = `<span class="dot"></span><b>${l.id} ${l.name}</b><span class="n">${count}</span>`;
-  colL.appendChild(d); leafEl[l.id] = d;
+  // the type-count text is filled by applyStats(); it depends on the convention
+  d.innerHTML = `<span class="dot"></span><b>${l.id} ${l.name}</b><span class="n">${
+    l.types.length ? "" : "generated"}</span>`;
+  if (l.note) d.title = `${l.id} ${l.name} — ${l.note}`;
+  colL.appendChild(d); leafEl[l.id] = d; leafN[l.id] = d.querySelector(".n");
   bindHover(d, () => setFocus({ leaf: l.id }));
 
   if (l.types.length) {
@@ -286,11 +495,16 @@ for (const l of LEAVES) {
     grp.className = "typegroup";
     for (const t of l.types) {
       const te = document.createElement("div");
-      te.className = "type" + (CLIPS[t] ? " hasclip" : ""); te.textContent = t;
+      te.className = "type" + (CLIPS[t] ? " hasclip" : "");
       te.style.setProperty("--ac", `var(${a.varc})`);
+      te.innerHTML = `<span class="tn"></span><span class="bar"><i></i></span><span class="cnt"></span>`;
+      te.querySelector(".tn").textContent = t;
+      const s = STATS[t];
+      if (s) te.title = `${t}\nnavhard scenes (of 421) — anchor ${s[0]} · s44 ${s[1]} · 20 s ${s[2]} · 21.5 s ${s[3]}`
+        + `\nnuPlan-wide: ${s[4].toLocaleString()} scenario_tag rows`;
       grp.appendChild(te);
       const panel = CLIPS[t] ? makeClipPanel(t, grp) : null;
-      typeEls[t] = { el: te, leaf: l.id, panel };
+      typeEls[t] = { el: te, leaf: l.id, panel, bar: te.querySelector(".bar i"), cnt: te.querySelector(".cnt") };
       bindHover(te, () => setFocus({ type: t, leaf: l.id }), () => openClip(panel, te));
     }
     colT.appendChild(grp); typeGroupEl[l.id] = grp;
@@ -439,8 +653,35 @@ function clearFocus() {
   paintWires(null);
 }
 
+// counts, bars and coverage badges for the selected convention. Leaves and
+// abilities report how many of their types occur in navhard, never a sum of
+// scene counts — one scene can carry several types, so those columns overlap.
+function applyStats() {
+  const max = Math.max(...ALLTYPES.map(nOf), 1);
+  for (const [t, o] of Object.entries(typeEls)) {
+    const c = nOf(t);
+    o.el.classList.toggle("zero", c === 0);
+    o.cnt.textContent = c;
+    o.bar.style.width = c ? Math.max(5, c / max * 100) + "%" : "0";
+  }
+  for (const l of LEAVES) {
+    if (!l.types.length) continue;
+    const cov = l.types.filter(t => nOf(t) > 0).length;
+    leafEl[l.id].classList.toggle("novh", cov === 0);
+    leafN[l.id].textContent = `${cov}/${l.types.length} types`;
+  }
+  for (const a of ABILITIES) {
+    const ls = LEAVES.filter(l => l.ab === a.id), ts = ls.flatMap(l => l.types);
+    abTag[a.id].textContent =
+      `${ls.length} leaves · ${ts.filter(t => nOf(t) > 0).length}/${ts.length} types in navhard`;
+  }
+  document.getElementById("scenehead").textContent = `navhard scenes · ${conv.label}`;
+  renderStrip();
+  drawWires();
+}
+
 buildWires();
-drawWires();
+applyStats();
 addEventListener("resize", () => { drawWires(); if (pinned) pinned.click(), pinned = null; });
 new ResizeObserver(() => drawWires()).observe(board);
 </script>
