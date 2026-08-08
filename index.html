@@ -181,7 +181,7 @@
 
   /* ---------- key numbers ---------- */
   .kpis {
-    display: grid; grid-template-columns: repeat(6, 1fr); gap: 1px;
+    display: grid; grid-template-columns: repeat(5, 1fr); gap: 1px;
     background: var(--line-soft); border: 1px solid var(--line-soft); border-radius: 10px;
     overflow: hidden; margin: 44px 0 0;
   }
@@ -193,7 +193,7 @@
   .kpi .l { font-size: 11.5px; color: var(--ink-dim); margin-top: 3px; min-height: 2.6em; }
   .kpi .s { font-size: 10.5px; color: var(--ink-faint); }
   @media (max-width: 900px) { .kpis { grid-template-columns: repeat(3, 1fr); } }
-  @media (max-width: 520px) { .kpis { grid-template-columns: repeat(2, 1fr); } }
+  @media (max-width: 560px) { .kpis { grid-template-columns: repeat(2, 1fr); } }
 
   /* ---------- generic section furniture ---------- */
   .sechead { margin: 88px 0 0; }
@@ -637,7 +637,7 @@
   table.plantab td:first-child { white-space: nowrap; }
   .planscroll { overflow-x: auto; }
 
-  /* the ten leaves */
+  /* the nine leaves */
   .leafcard {
     margin: 20px 0 0; scroll-margin-top: 68px; background: var(--panel); border: 1px solid var(--line-soft);
     border-left: 3px solid var(--ac); border-radius: 10px; padding: 16px 20px 18px;
@@ -771,12 +771,11 @@
 <!-- =====================  OVERVIEW  ===================== -->
 <section id="overview" class="wrap">
   <div class="kpis">
-    <div class="kpi"><div class="n">421</div><div class="l">navhard scenes</div><div class="s">72 nuPlan logs · 4 maps</div></div>
-    <div class="kpi"><div class="n">73</div><div class="l">nuPlan scenario types</div><div class="s">screened by taxonomy</div></div>
+    <div class="kpi"><div class="n">500</div><div class="l">scenarios</div><div class="s">≥ 10 in every leaf</div></div>
     <div class="kpi"><div class="n">28</div><div class="l">taxonomy leaves</div><div class="s">RoadSafe365 outcomes</div></div>
     <div class="kpi"><div class="n">6</div><div class="l">safety capabilities</div><div class="s">scored by success rate</div></div>
-    <div class="kpi"><div class="n">517</div><div class="l">NuRec scenarios</div><div class="s">441 navtest + 76 mined</div></div>
-    <div class="kpi"><div class="n">2068</div><div class="l">reconstructed clips</div><div class="s">4 × 5 s per 20 s window</div></div>
+    <div class="kpi"><div class="n">73</div><div class="l">nuPlan scenario types</div><div class="s">the mining vocabulary</div></div>
+    <div class="kpi"><div class="n">83</div><div class="l">constructed scenarios</div><div class="s">the 9 leaves mining cannot reach</div></div>
   </div>
 
   <div class="sechead">
@@ -974,22 +973,19 @@
 <section id="coverage" class="wrap">
   <div class="sechead">
     <p class="eyebrow">Statistics &amp; coverage</p>
-    <h2 class="sec serif">Coverage — 10 scenarios per leaf, 500 in total</h2>
-    <p class="sub">Coverage is measured in <b>taxonomy leaves</b>, not scenario types:
-    <b>≥&nbsp;10 scenarios in each of the 28 leaves, 500 in total</b>. The 73 nuPlan scenario
-    types are the <b>mining vocabulary</b> — the tags through which a leaf gets populated, so a
-    type is a means of reaching the target rather than the thing being counted.</p>
+    <h2 class="sec serif">Where the 500 come from</h2>
+    <p class="sub">Coverage is counted in <b>taxonomy leaves</b>, not scenario types: a type is
+    the tag a leaf is populated <i>through</i>, never the thing being measured. Most leaves fill
+    themselves by mining those tags; the rest have to be built.</p>
   </div>
   <div class="reconstat">
-    <div><span class="k">28</span><span class="l">taxonomy leaves</span></div>
-    <div><span class="k">407</span><span class="l">mined, over 18 leaves</span></div>
-    <div><span class="k">93</span><span class="l">generated, over 10 leaves</span></div>
-    <div><span class="k">500</span><span class="l">scenarios in total</span></div>
+    <div><span class="k">417</span><span class="l">mined · 19 leaves, ~22 each</span></div>
+    <div><span class="k">83</span><span class="l">constructed · 9 leaves</span></div>
   </div>
-  <p class="sub">Ten leaves cannot be reached by mining — seven have no nuPlan type at all
-  (<code class="m">C-9 C-10 V-10 V-11 R-3 R-4 I-3</code>) and three are too scarce to reach ten
-  (<code class="m">C-7 V-8 R-2</code>). Their 93 scenarios are <b>constructed</b> by scene editing;
-  the mined leaves reach roughly 22 scenarios each.</p>
+  <p class="sub">The nine that cannot be mined: six have no nuPlan type at all
+  (<code class="m">C-10 V-10 V-11 R-3 R-4 I-3</code>) and three are too scarce to reach ten
+  (<code class="m">C-7 V-8 R-2</code>). Their episodes are <b>constructed</b> by scene editing —
+  an asset placed and moved on a reconstructed host scene, frozen as a rebuildable recipe.</p>
 </section>
 
 <!-- =====================  PROTOCOL  ===================== -->
@@ -1101,9 +1097,11 @@
 </section>
 
 <footer class="pagefoot"><div class="wrap">
-  <p>Dashed leaves are unpopulated by log mining — their episodes must be generated
-  (<code>C-9 C-10 V-10 V-11 R-3 R-4 I-3</code>, and <code>C-8</code> is context-only:
-  <code>on_carpark</code> supplies the setting, not the event). Source:
+  <p>Dashed leaves have no nuPlan scenario type, so no tag reaches them. Six are
+  <b>constructed</b> by scene editing (<code>C-10 V-10 V-11 R-3 R-4 I-3</code>);
+  <code>C-9</code> is not — it is defined by surface and lighting rather than by an actor, and is
+  populated by mining. <code>C-8</code> is context-only: <code>on_carpark</code> supplies the
+  setting, not the event. Source:
   <code>docs/research/Navsafe_taxonomy_short.md</code> §§1–4, §8.2.</p>
 
   <p>Counts are <b>scenarios, not frames</b>: a type hit on several frames of one scene counts once,
@@ -1165,14 +1163,13 @@
       <p>NavSafe measures coverage in <b>taxonomy leaves</b>: <b>≥ 10 scenarios per leaf across
       28 leaves, 500 in total</b>. The 73 nuPlan scenario types are the <b>mining vocabulary</b> —
       the tags through which a leaf gets populated.</p>
-      <p>Most of the 500 come from mining navhard / navtest / test. Of the ten leaves mining
-      cannot serve, nine are built here — <b>9 of the 28 leaves, 83 scenarios</b>. The tenth,
-      C-9 Single-Vehicle, has no actors at all — it is defined entirely by ground material and
-      HDRI, which this pipeline does not touch (§2 below). It is out of scope here and reported
-      unpopulated.</p>
+      <p>Most of the 500 come from mining navhard / navtest / test. Only the leaves mining
+      cannot serve are built here — <b>9 of the 28 leaves, 83 scenarios</b>. C-9 Single-Vehicle
+      is not among them: it has no actors at all — it is defined entirely by ground material and
+      HDRI, which this pipeline does not touch (§2 below) — so it is populated by mining like the
+      rest.</p>
       <pre class="planpre"><b>generated    83</b>   over 9 leaves                                   <span class="cm">(Part II)</span>
-mined       407    over the remaining 18 leaves, ≥ 10 each → ~22 each
-unpopulated  10    C-9 — out of scope for this pipeline
+mined       417    over the remaining 19 leaves, ≥ 10 each → ~22 each
 ──────────────────
 total       500</pre>
       <p>The output is not a scenario — it is a <b>recipe</b> for a scenario, precise enough
@@ -1451,9 +1448,9 @@ LogReplayTraffic.step → agent_manager.update_agents(timestep=env.scenario_time
         <p><b>6 leaves have no nuPlan type</b> — 10 scenarios each, built from nothing:
         C-10 · V-10 · V-11 · R-3 · R-4 · I-3. <b>3 leaves are too scarce to reach 10</b> —
         the deficit is built and the real scenarios are kept: C-7 (1 mined → 9) ·
-        V-8 (1 mined → 9) · R-2 (5 mined → 5). A seventh no-nuPlan-type leaf, C-9
-        Single-Vehicle, is <b>out of scope</b> — this pipeline only inserts and moves actors,
-        and C-9 is defined entirely by ground material and HDRI (§1).</p>
+        V-8 (1 mined → 9) · R-2 (5 mined → 5). C-9 Single-Vehicle is <b>not built here</b> —
+        this pipeline only inserts and moves actors, and C-9 is defined entirely by ground
+        material and HDRI, so it is mined like the other 19 leaves (§1).</p>
       </div>
       <p>Each entry gives <b>asset · placement · trajectory · reviewer checklist</b>. Placement and
       trajectory are stated as authoring intent; §7 covers how that becomes baked arrays and how
@@ -1612,7 +1609,7 @@ nexussim/scenario/edits.py
               <td><b>Last, the one that needs a decision first</b></td>
               <td>V-10 — does any host have on-ramp geometry? C-9 is not on this list: it has
               no actors, only ground material and HDRI, which this pipeline does not touch —
-              out of scope, reported unpopulated.</td>
+              it is mined, not built.</td>
             </tr>
           </tbody>
         </table>
@@ -1676,7 +1673,10 @@ const LEAVES = [
   { id:"C-6",  name:"Roadway Departure",    cls:"Traffic Crashes", ab:"A2", types:["traversing_pickup_dropoff","on_pickup_dropoff"] },
   { id:"C-7",  name:"Head-On",              cls:"Traffic Crashes", ab:"A3", types:["traversing_narrow_lane"] },
   { id:"C-8",  name:"Backing",              cls:"Traffic Crashes", ab:"A5", types:["on_carpark"], note:"context only" },
-  { id:"C-9",  name:"Single-Vehicle",       cls:"Traffic Crashes", ab:"A2", types:[] },
+  // no nuPlan type covers C-9, but it is populated by mining rather than built:
+  // the leaf is defined by surface and lighting, which scene editing does not touch.
+  { id:"C-9",  name:"Single-Vehicle",       cls:"Traffic Crashes", ab:"A2", types:[], mined:true,
+    note:"no nuPlan type covers it; populated by mining, not constructed" },
   { id:"C-10", name:"Wrong-Way (crash)",    cls:"Traffic Crashes", ab:"A3", types:[] },
   { id:"V-1",  name:"Red-Light / Stop-Sign",cls:"Traffic Violations", ab:"A4", types:["traversing_traffic_light_intersection","on_traffic_light_intersection","on_stopline_traffic_light","starting_straight_traffic_light_intersection_traversal","stopping_at_traffic_light_without_lead","stationary_at_traffic_light_without_lead","accelerating_at_traffic_light","accelerating_at_traffic_light_without_lead","on_stopline_stop_sign","starting_straight_stop_sign_intersection_traversal","stopping_at_stop_sign_without_lead","stopping_at_stop_sign_no_crosswalk","accelerating_at_stop_sign","accelerating_at_stop_sign_no_crosswalk"] },
   { id:"V-2",  name:"Failure to Yield",     cls:"Traffic Violations", ab:"A3", types:["starting_unprotected_cross_turn","starting_unprotected_noncross_turn","on_all_way_stop_intersection"] },
@@ -1879,7 +1879,7 @@ for (const a of ABILITIES) {
   legend.appendChild(s);
 }
 const g = document.createElement("span");
-g.innerHTML = `<i class="ghosty"></i>empty leaf — episodes generated, not mined`;
+g.innerHTML = `<i class="ghosty"></i>empty leaf — no nuPlan type covers it`;
 legend.appendChild(g);
 const gc = document.createElement("span");
 gc.innerHTML = `<b>▸</b>&nbsp;scenario type with a clip (${Object.keys(CLIPS).length} of 73)`;
@@ -1915,7 +1915,7 @@ for (const l of LEAVES) {
   d.style.setProperty("--ac", `var(${a.varc})`);
   // the type-count text is filled by applyStats(); it depends on the convention
   d.innerHTML = `<span class="dot"></span><b>${l.id} ${l.name}</b><span class="n">${
-    l.types.length ? "" : "generated"}</span>`;
+    l.types.length ? "" : (l.mined ? "mined" : "constructed")}</span>`;
   if (l.note) d.title = `${l.id} ${l.name} — ${l.note}`;
   colL.appendChild(d); leafEl[l.id] = d; leafN[l.id] = d.querySelector(".n");
   bindHover(d, () => setFocus({ leaf: l.id }));
@@ -2413,7 +2413,7 @@ const PLAN_DOCS = {
       ["",     "#pl-5",      "5 · The four edit ops"],
       ["",     "#pl-6",      "6 · Event timing"],
       ["",     "#pl-7",      "7 · Trajectory"],
-      ["part", "#pl-leaves", "Part II · Ten leaves"],
+      ["part", "#pl-leaves", "Part II · Nine leaves"],
       // the ten leaf cards, in build order — generated from the same array that
       // renders them, so the index cannot drift from the document.
       ...PLAN_LEAVES.map(L => ["tocleaf", "#" + leafAnchor(L.id), `${L.id} · ${L.name}`]),
