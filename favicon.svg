@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-label="NavSafe">
+  <title>NavSafe</title>
+  <!-- A road in perspective with its lane dashes: the site's ink tile, paper
+       road surface, and the a1 blue used for the wordmark's "Nav". -->
+  <rect width="64" height="64" rx="14" fill="#23221F"/>
+  <path d="M15 60 L26.5 18 L37.5 18 L49 60 Z" fill="#F6F5F2"/>
+  <path d="M30.9 22 L33.1 22 L33.3 28 L30.7 28 Z" fill="#497DC9"/>
+  <path d="M30.3 33 L33.7 33 L34.1 41 L29.9 41 Z" fill="#497DC9"/>
+  <path d="M29.4 46 L34.6 46 L35.2 57 L28.8 57 Z" fill="#497DC9"/>
+</svg>
