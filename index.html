@@ -1269,39 +1269,106 @@ total       500</pre>
       length <code>s</code> along the reference, lateral offset, heading offset, speed — because
       that is how a human states the intent ("52 m ahead, in my lane, facing me, 8 m/s").
       World coordinates are the output, never the input.</p>
-      <p>The reference polyline is one of: the <b>ego's logged route</b>, a <b>lane centreline</b>
-      from the map, or an <b>inline polyline</b>. The generator already exists
-      (<code>nexussim/scenario/edits.py::relocate_agent</code>) with five modes:</p>
+      <p>The <b>reference polyline</b> is the ego's logged route, a lane centreline from the map, or
+      an inline polyline. Which one it is decides the shape of the motion, because <b>heading follows
+      the reference</b>: a turn-lane centreline through a junction produces a turning vehicle, a
+      mainline lane that converges with a ramp produces a stream that converges with it, and a
+      sidewalk polyline produces an actor that travels along the kerb.</p>
+      <p><b>Speed is signed.</b> Positive travels with the reference's direction, negative against
+      it — which is how an oncoming actor closes on the ego, and the heading follows from the
+      velocity vector, so nothing extra is needed to turn it around.</p>
       <div class="planscroll">
         <table class="plantab">
-          <thead><tr><th>mode</th><th>motion</th><th>key parameters</th></tr></thead>
+          <thead><tr><th>template</th><th>motion</th><th>key parameters</th></tr></thead>
           <tbody>
-            <tr><td><code>static</code></td><td>fixed point</td><td><code>arc</code>, <code>lateral</code>, <code>yaw_offset_deg</code></td></tr>
-            <tr><td><code>dynamic</code></td><td>constant speed along the reference</td><td>+ <code>speed</code></td></tr>
-            <tr><td><code>braking</code></td><td>constant speed, then decelerate to a stop</td><td>+ <code>deceleration_mps2</code>, <code>maneuver_start_frame</code></td></tr>
-            <tr><td><code>cut_in</code></td><td>advances while interpolating lateral offset</td><td>+ <code>start_lateral</code>, <code>end_lateral</code>, <code>maneuver_duration_frames</code></td></tr>
-            <tr><td><code>crossing</code></td><td>traverses laterally, reaching the reference centre at <code>conflict_frame</code></td><td>+ <code>conflict_frame</code></td></tr>
+            <tr><td><code>static</code></td><td>a fixed pose</td><td><code>arc</code>, <code>lateral</code>, <code>yaw_offset_deg</code></td></tr>
+            <tr><td><code>dynamic</code></td><td>constant speed along the reference, either direction</td><td>+ <code>speed</code> (signed)</td></tr>
+            <tr><td><code>lateral_schedule</code></td><td>advances while stepping through lateral offsets — a single transfer for a cut-in, out-and-back for an overtake</td><td>+ <code>waypoints</code> (frame → lateral)</td></tr>
+            <tr><td><code>dart_out</code></td><td>holds one arc position and traverses laterally across the reference, waiting at the start offset until it goes</td><td>+ <code>start_lateral</code>, <code>end_lateral</code>, <code>speed</code>, <code>conflict_frame</code></td></tr>
+            <tr><td><code>group</code></td><td>N actors on one reference at a declared gap pattern, with one gap marked usable</td><td>+ <code>count</code>, <code>gaps_m</code>, <code>usable_gap_index</code></td></tr>
           </tbody>
         </table>
       </div>
-      <p>Two properties worth knowing. <b>Heading follows the velocity vector when the actor is
-      moving</b>, so a crossing actor faces where it is going rather than along the reference
-      tangent. And <code>align_to_ego_at_conflict</code> re-anchors the start arc on where the
-      <em>ego</em> is at <code>conflict_frame</code> — this is how a timing intent ("arrive as the
-      ego reaches the conflict point") is solved into geometry, and it is why the recipe records
-      <code>assumed_ego_arrival_window_s</code>: under a non-reactive design that solve needs an
-      assumed ego arrival, taken from the log-replay ego.</p>
-      <p><b>Three extensions the nine leaves need:</b></p>
-      <ul>
-        <li><b>Switchable reference polyline.</b> Everything is currently anchored on the ego's
-        logged route, and <code>crossing</code> approximates a cross-street approach as a lateral
-        slide across it. V-10's mainline platoon must run on the mainline lane, R-2's cyclist on
-        a cross street, R-3's delivery robot on a sidewalk.</li>
-        <li><b>Group parameters.</b> A platoon with one usable gap (V-10), a cyclist group (R-2) —
-        one spec per track cannot express a shared gap structure.</li>
-        <li><b>An acceleration profile.</b> A standing-start dart (R-4); <code>dynamic</code> is
-        constant speed.</li>
-      </ul>
+      <p>Timing intents are solved into geometry rather than authored as arc values. A recipe can say
+      "arrive as the ego reaches the conflict point"; the baker resolves the conflict point — for two
+      different references, the intersection of the actor's polyline with the ego's route — and back
+      solves the start arc. Under a non-reactive design that solve needs an assumed ego arrival,
+      taken from the log-replay ego, which is what the recipe's
+      <code>assumed_ego_arrival_window_s</code> records.</p>
+
+      <h4>What this covers across the nine leaves</h4>
+      <div class="planscroll">
+        <table class="plantab">
+          <thead><tr><th>leaf</th><th>behaviour</th><th>template</th></tr></thead>
+          <tbody>
+            <tr><td>C-10</td><td>a vehicle closing head-on in the ego's own lane</td><td><code>dynamic</code>, negative speed on the ego route</td></tr>
+            <tr><td>C-7</td><td>a vehicle closing in a narrowed two-way corridor, plus static constrictors</td><td><code>dynamic</code> negative + <code>static</code></td></tr>
+            <tr><td>V-10</td><td>a mainline stream with one usable gap, converging with the ego's ramp</td><td><code>group</code> on the mainline lane centreline</td></tr>
+            <tr><td>V-11 · V-8</td><td>a posted sign the ego must obey</td><td><code>static</code></td></tr>
+            <tr><td>R-4</td><td>an animal darting from the verge and continuing off the far side</td><td><code>dart_out</code></td></tr>
+            <tr><td>R-3</td><td>an embodiment entering from a kerb or sidewalk, straight or turning</td><td><code>dart_out</code>; <code>dynamic</code> on a sidewalk polyline where it turns</td></tr>
+            <tr><td>R-2</td><td>a cyclist arriving from a side street · a group sharing the lane ahead</td><td><code>dynamic</code> on the cross-street centreline · <code>group</code></td></tr>
+            <tr><td>I-3</td><td>crash scene, officer, school bus, and both negative controls</td><td><code>static</code></td></tr>
+            <tr><td>I-3 · emergency vehicle</td><td>overtaking the ego from behind, out of the lane and back</td><td><code>dynamic</code> + <code>lateral_schedule</code></td></tr>
+          </tbody>
+        </table>
+      </div>
+      <p>Every behaviour the nine leaves ask for reduces to one of the five templates on one of the
+      three reference kinds. The two that carry the most weight are a <b>signed</b> speed, which is
+      what makes an oncoming actor expressible at all, and a <b>switchable reference</b>, which is
+      what makes cross traffic, converging streams and turning actors follow real road geometry
+      instead of an offset from the ego's own path.</p>
+      <p>Constant speed is enough throughout: no leaf needs an acceleration or braking profile.
+      A standing start is already what <code>dart_out</code> does — the actor holds its start offset
+      for the pre-event frames and then goes — and where the ego's reaction time matters it is set by
+      <code>speed</code> and <code>arc</code>, not by how quickly the actor reaches its speed.
+      <code>group</code> is a convenience over N <code>dynamic</code> actors sharing one reference;
+      it exists because <code>usable_gap_index</code> makes "exactly one gap is usable" declarative,
+      which is what V-10's reviewer checklist reads.</p>
+
+      <h4>Worked example: a dart-out</h4>
+      <p>The roadside dart R-4, R-3 and R-2 share is <code>dart_out</code>: the actor holds one arc
+      position on the reference and moves purely across it. A dog:</p>
+      <pre class="planpre">authored:
+  template: dart_out
+  reference: ego_route
+  arc: 25.0                   <span class="cm"># 25 m past the hand-off</span>
+  start_lateral: -5.0         <span class="cm"># right shoulder (+left is positive)</span>
+  end_lateral:   +5.0         <span class="cm"># exits past the far edge</span>
+  speed: 5.0                  <span class="cm"># m/s — a dog</span>
+  conflict_frame: 22          <span class="cm"># frame it reaches the lane centre</span></pre>
+      <p>The baker turns the crossing speed into a frame span and places it around the conflict
+      frame:</p>
+      <pre class="planpre">duration       = |end_lateral − start_lateral| / (speed × dt_s)
+               = 10.0 / (5.0 × 0.1) = 20 frames
+crossing_start = conflict_frame − duration/2 = 22 − 10 = 12</pre>
+      <p>Frames 0–11 the animal waits at the verge, 12–31 it crosses, 32 onward it is off the far
+      side — and heading is perpendicular to the road throughout, including the still frames at
+      either end.</p>
+
+      <div class="plannote plain">
+        <span class="nk">Authoring rules for a lateral sweep</span>
+        <ul style="margin-top:0">
+          <li><b>End clear of the road edge.</b> The actor holds its final lateral offset for the
+          rest of the episode, so a sweep ending at the lane centre leaves a static obstacle parked
+          in the lane — a different leaf entirely.</li>
+          <li><b>Keep the sweep symmetric about the lane centre</b>, so
+          <code>conflict_frame</code> means the frame the actor reaches the centre.</li>
+          <li><b>Take lateral values from the host probe's cross-section.</b> Offsets are measured
+          from the reference centreline, so whether −5.0 m is the shoulder, the verge or the
+          oncoming lane is a property of the host, not a constant.</li>
+          <li><b>Hold the crossing heading through the still frames</b> at either end, so the actor
+          does not rotate on the spot when it starts and stops.</li>
+        </ul>
+      </div>
+
+      <div class="plannote plain">
+        <span class="nk">Frame rate</span>
+        <code>T</code> and <code>dt_s</code> come from the host's own frame timestamps, never from a
+        default. Every speed-derived quantity — a crossing's frame span, the baked velocity — scales
+        with <code>dt_s</code>, which is why the recipe records both it and
+        <code>frame_timestamps_us</code> and refuses a host whose rate disagrees.
+      </div>
 
       <h4>Storage: bake the output, inline it</h4>
       <p>Store the arrays, not the parameters. The generator depends on the host's sampled route,
@@ -1438,11 +1505,10 @@ actors:
 
     <span class="cm"># authored intent — documentation only, never re-executed</span>
     authored:
-      template: wrong_way_approach
+      template: dynamic
       reference: ego_route                           <span class="cm"># ego_route | lane:&lt;id&gt; | polyline</span>
       arc: 52.0
-      heading: reversed
-      v: 8.0
+      speed: -8.0                                    <span class="cm"># negative → closes on the ego</span>
 
     <span class="cm"># authority — baked per-frame state, inlined (§7)</span>
     <b>state:</b>
@@ -1464,7 +1530,7 @@ review: {status: pending, checklist: leaves/C-10.md}</pre>
       <pre class="planpre">nexussim/navsafe/editing/
 ├── assets/      registry.py · acquire.py · compose.py
 ├── placement/   probe.py · solve.py        <span class="cm"># authored intent → absolute pose</span>
-├── trajectory/  templates.py · bake.py     <span class="cm"># generator + the 3 extensions (§7)</span>
+├── trajectory/  templates.py · bake.py     <span class="cm"># the five templates (§7)</span>
 ├── recipe/      schema.py · freeze.py · replay.py
 ├── review/      cards.py                   <span class="cm"># renders what the human checks</span>
 └── cli.py
@@ -1504,16 +1570,23 @@ nexussim/scenario/edits.py
             </tr>
             <tr>
               <td>2</td>
-              <td><b>Placement solver and trajectory templates</b></td>
-              <td>Enough for the first leaf. The existing five modes cover C-10; the §7 extensions
-              (switchable reference polyline, group parameters, acceleration profile) are needed by
-              V-10, R-2, R-3 and R-4 and can wait until those leaves.</td>
+              <td><b>Placement solver and the trajectory templates</b></td>
+              <td>Signed speed and the ego route as a reference are enough for the first leaf;
+              <code>static</code> and <code>dart_out</code> follow closely behind (§7).</td>
             </tr>
             <tr>
               <td>3</td>
               <td><b>C-10 Wrong-Way end to end</b></td>
               <td>The cheapest leaf: <code>relocate</code> only, no new asset, and the ego route as
               its reference polyline. Produces the first review card and proves the whole path.</td>
+            </tr>
+            <tr>
+              <td>3b</td>
+              <td><b>Lane-centreline and inline references</b></td>
+              <td>Ahead of the remaining leaves rather than deferred to V-10: it is what puts R-2's
+              cyclist on the side road, R-3's embodiments on the kerb, and V-10's stream on a lane
+              that converges — and it is what makes a turning actor fall out of the reference's own
+              curvature.</td>
             </tr>
             <tr>
               <td>4</td>
@@ -2133,12 +2206,13 @@ const PLAN_LEAVES = [
     lede: "Zero marginal asset cost: the intervention is the behaviour, not the object.",
     asset: "<code>car</code> ×5 from the shared pool (sedan, SUV, hatchback, van, pickup). Prefer <code>relocate</code> of a host vehicle to keep its baked appearance.",
     placement: "In the <b>ego's own lane</b>, ahead, heading reversed (route tangent + 180°). Spawn arc 40–70 m past the hand-off so the closing speed still leaves a reaction window.",
-    trajectory: "<code>wrong_way_approach</code>: constant 6–10 m/s toward the ego along the ego lane's centreline. It never swerves.",
+    trajectory: "<code>dynamic</code> on the ego route at a <b>negative</b> 6–10 m/s, so the actor closes head-on along the ego lane's centreline and its heading follows from the velocity vector. It never swerves.",
     checks: [
       "the vehicle is in the ego's <b>own</b> lane, not the adjacent opposing lane — this is the single most common way to build this leaf wrong",
       "it faces the ego (no sideways or reversed mesh)",
       "closing geometry leaves ≥ 1.5 s to initiate evasion",
       "a <b>legal</b> evasion exists — shoulder or free adjacent lane — so the episode is not unavoidable at spawn, and evading into the opposing lane is not the only out",
+      "the spawn arc lies inside the reference's own length, so the actor starts where the recipe says rather than at the end of the route",
     ],
   },
   {
@@ -2146,7 +2220,7 @@ const PLAN_LEAVES = [
     lede: "A timed gap in a mainline stream that will not open for a hesitant ego.",
     asset: "<code>car</code> ×8 mainline stream, shared pool.",
     placement: "The ego starts on an acceleration lane or ramp; the stream occupies the adjacent mainline lane. Gap structure is the parameter: one usable gap arriving near the ego's merge point, with the rest of the platoon closed.",
-    trajectory: "Constant-speed platoon at 12–18 m/s with fixed inter-vehicle gaps. Non-reactive, so the stream will not open for a hesitant ego.",
+    trajectory: "<code>group</code> on the <b>mainline lane's own centreline</b> — a 12–18 m/s platoon with a declared gap pattern and one gap marked usable, so it converges with the ramp the way the lane does. Non-reactive, so the stream will not open for a hesitant ego.",
     checks: [
       "the host genuinely has an acceleration lane that <b>ends</b>, and the ego's route is on it",
       "exactly one gap is usable, and it is still open when the ego reaches it — the timing risk of §6 is at its worst here",
@@ -2161,7 +2235,7 @@ const PLAN_LEAVES = [
     lede: "A prohibition test: the ego must <em>not</em> do something the road physically allows.",
     asset: "<code>one_way</code> ×3 (do-not-enter, directional, wrong-way) — the <code>sign</code> registry's one-way allotment.",
     placement: "At the entrance of a one-way segment or divided-highway ramp on the ego's route, at correct roadside mounting height, <b>face turned toward the ego's approach</b>.",
-    trajectory: "Static.",
+    trajectory: "<code>static</code> — a fixed pose for the whole episode.",
     checks: [
       "the sign is legible from the ego camera at realistic approach distance",
       "the segment it governs really is one-way, and the ego's route offers the illegal entry as a plausible option — otherwise the test is vacuous",
@@ -2174,7 +2248,7 @@ const PLAN_LEAVES = [
     lede: "Unfamiliar kinematics in shared space. Results are reported <b>per embodiment, never pooled</b>, so the 10 split evenly.",
     asset: "<code>delivery_robot</code> ×5 · <code>quadruped</code> ×3 · <code>humanoid</code> ×3 · <code>wheelchair + user</code> ×5 <b>composed</b> · <code>scooter_rider</code> ×3.",
     placement: "At a curb, crosswalk or shared-space edge, entering the ego's lane: delivery robot off a sidewalk at a driveway; wheelchair at a marked crossing; quadruped mid-block; scooter from a bike lane.",
-    trajectory: "<code>dart_out</code> or <code>cross_at_gap</code> at embodiment-appropriate speed: delivery robot 1.0–1.5 m/s · wheelchair 0.8–1.4 m/s · quadruped 1.5–3.0 m/s · humanoid 1.0–1.5 m/s · scooter 4–6 m/s. Non-negotiating.",
+    trajectory: "<code>dart_out</code> at embodiment-appropriate speed: delivery robot 1.0–1.5 m/s · wheelchair 0.8–1.4 m/s · quadruped 1.5–3.0 m/s · humanoid 1.0–1.5 m/s · scooter 4–6 m/s. Non-negotiating. Where the embodiment turns rather than crossing straight — a wheelchair coming off the kerb — it runs <code>dynamic</code> on a kerb or sidewalk polyline, so the turn comes from the reference's own curvature.",
     checks: [
       "speed <b>and turn radius</b> are plausible for that embodiment — a wheelchair pivoting like a pedestrian is the characteristic authoring error",
       "the actor is visible early enough that a competent policy could respond",
@@ -2189,7 +2263,7 @@ const PLAN_LEAVES = [
     lede: "An unfamiliar mover with no social model: it will not negotiate.",
     asset: "<code>animal</code> ×8 across ≥ 6 species — dog ×2, deer ×2, plus cat, bird, raccoon, squirrel. The 10 scenarios span all six species.",
     placement: "Entering the ego's lane from the roadside: dog and deer from a shoulder or vegetation line (with the vegetation as a partial occluder where the host has one); small animals already mid-lane.",
-    trajectory: "<code>dart_out</code>, straight-line crossing with no yield: deer 6–9 m/s · dog 3–5 m/s · cat / raccoon / squirrel 2–4 m/s · bird low crossing.",
+    trajectory: "<code>dart_out</code>, straight-line crossing with no yield: deer 6–9 m/s · dog 3–5 m/s · cat / raccoon / squirrel 2–4 m/s · bird low crossing — see the worked example in §7. The animal waits at the verge for the pre-event frames, so no acceleration profile is needed. Small animals already mid-lane are <code>static</code> at <code>lateral ≈ 0</code>.",
     checks: [
       "speed and path match the species — nothing lane-follows or brakes",
       "size is plausible against the vehicle beside it",
@@ -2204,7 +2278,7 @@ const PLAN_LEAVES = [
     table: `<div class="planscroll"><table class="plantab">
       <thead><tr><th>sub-scenario</th><th>placement</th><th>trajectory</th></tr></thead>
       <tbody>
-        <tr><td>emergency vehicle approaching</td><td>same lane behind the ego, or opposing lane</td><td><code>emergency_approach</code>, 15–20 m/s, overtaking</td></tr>
+        <tr><td>emergency vehicle approaching</td><td>same lane behind the ego (negative <code>arc</code>), or opposing lane</td><td><code>dynamic</code> 15–20 m/s + <code>lateral_schedule</code> out and back — the one moving sub-scenario</td></tr>
         <tr><td>in-lane crash scene</td><td>two vehicles at odd yaw blocking the ego's lane + <code>debris</code> scattered around them</td><td>static</td></tr>
         <tr><td>officer directing against the signal</td><td><code>responder</code> standing in the ego's approach path, with the signal showing green</td><td>static, oriented toward the ego</td></tr>
         <tr><td>school-bus stop-arm</td><td><code>bus</code> stopped in the ego's lane or the adjacent one, stop-arm out</td><td>static</td></tr>
@@ -2225,7 +2299,7 @@ const PLAN_LEAVES = [
     lede: "The dominant failure here is <b>mutual freeze, not collision</b>.",
     asset: "<code>car</code> ×5 oncoming (shared pool) · <code>corridor_constrictor</code> ×3 (parked car, jersey barrier, cone cluster).",
     placement: "Constrictors along one side of a two-way street, narrowing the usable width below two vehicle widths; the oncoming car approaches inside the narrowed corridor. A pullout or wide spot must exist <b>before</b> the meeting point.",
-    trajectory: "Oncoming car at a constant 3–6 m/s toward the ego. Because it is non-reactive it will not yield — which makes the correct behaviour unambiguous: the <b>ego</b> must yield into the pullout.",
+    trajectory: "<code>dynamic</code> at a <b>negative</b> 3–6 m/s so the car closes inside the corridor, plus <code>static</code> constrictors. Because it is non-reactive it will not yield, which makes the correct behaviour unambiguous: the <b>ego</b> must yield into the pullout.",
     checks: [
       "usable width is genuinely below two vehicles — measure it, do not eyeball it",
       "a reachable pullout exists before the meeting point, so the scenario is solvable",
@@ -2238,7 +2312,7 @@ const PLAN_LEAVES = [
     lede: "A map-versus-perception conflict: the map permits the topology, the sign forbids it.",
     asset: "<code>prohibitory_turn_sign</code> ×2 (No-U-Turn, No-Left-Turn) — <b>authored</b>, by retexturing a generic sign face. No such mesh exists in the asset library, and without the sign the maneuver is legal and the leaf untestable.",
     placement: "At an intersection where the map genuinely permits the U-turn or left, mounted at legible height, face toward the ego's approach.",
-    trajectory: "Static.",
+    trajectory: "<code>static</code> — a fixed pose for the whole episode.",
     checks: [
       "the sign is legible at approach distance and unmistakably a prohibition",
       "the map really does permit the maneuver — with no permission there is no conflict and nothing is being tested",
@@ -2251,7 +2325,7 @@ const PLAN_LEAVES = [
     lede: "The mined five are the follow-and-pass case; the built five are the crossing and group cases that nuPlan effectively does not contain.",
     asset: "<code>bicycle + rider</code> ×5 <b>composed</b> — the library has 2 cyclist-person meshes against 118 bicycles, the tightest bottleneck in the tree, so composition is mandatory and reported as composed.",
     placement: "Crossing case: cyclist entering the ego's path from a cross street or driveway. Group case: 3–4 cyclists in a bike lane or sharing the lane ahead of the ego.",
-    trajectory: "<code>cross_at_gap</code> at 4–6 m/s for the crossing; a 4–5 m/s group travelling ahead for the pass case.",
+    trajectory: "Crossing case: <code>dynamic</code> at 4–6 m/s on the <b>cross street's own centreline</b>, so the approach follows the side road rather than cutting across the ego's path. Group case: <code>group</code> at 4–5 m/s travelling ahead of the ego at a declared spacing.",
     checks: [
       "the rider is composed onto the bike plausibly — seated, correctly scaled, feet at the pedals. This is the leaf's characteristic failure",
       "the path is plausible for a bicycle (no lean or wobble is acceptable; an implausible turn radius is not)",
