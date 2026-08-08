@@ -707,7 +707,6 @@
     <a href="#coverage">Coverage</a>
     <a href="#protocol">Protocol</a>
     <a href="#results">Results</a>
-    <a href="#cite">BibTeX</a>
   </div>
   <!-- in the internal view the top row selects the document; the sections of
        whichever document is open are the left-hand contents index. -->
@@ -724,7 +723,7 @@
 
 <header class="hero" id="heroPublic">
   <div class="wrap">
-    <span class="venue"><b>ICRA 2027</b> submission · under review</span>
+    <span class="venue">Under review</span>
     <p class="wordmark serif"><em>Nav</em>Safe</p>
     <h1 class="title serif">Benchmarking Closed-Loop Driving Safety in Photorealistic Environments
       <span class="lede">A closed-loop benchmark whose scenario coverage is organized by a real-world
@@ -1094,27 +1093,6 @@
   </div>
 </section>
 
-<!-- =====================  CITE  ===================== -->
-<section id="cite" class="wrap">
-  <div class="sechead">
-    <p class="eyebrow">Citation</p>
-    <h2 class="sec serif">BibTeX</h2>
-    <p class="sub">The release will include the taxonomy codebook, candidate and rejection manifests,
-    source tokens, scenario programs, reconstruction quality cards, trace schema, scorer tests,
-    checkpoint hashes, adapters, and per-episode results.</p>
-  </div>
-  <div class="cite">
-    <div class="bar"><span>navsafe.bib</span><button id="copybib">Copy</button></div>
-    <pre id="bib">@inproceedings{ruan2027navsafe,
-  title     = {NavSafe: Benchmarking Closed-Loop Driving Safety in Photorealistic Environments},
-  author    = {Ruan, Hongwei and Bao, Yuxin and Wang, Luobin and Zhao, Seth Z.
-               and Christensen, Henrik and Zhou, Bolei},
-  booktitle = {IEEE International Conference on Robotics and Automation (ICRA)},
-  year      = {2027}
-}</pre>
-  </div>
-</section>
-
 <footer class="pagefoot"><div class="wrap">
   <p>Dashed leaves are unpopulated by log mining — their episodes must be generated
   (<code>C-9 C-10 V-10 V-11 R-3 R-4 I-3</code>, and <code>C-8</code> is context-only:
@@ -1155,8 +1133,8 @@
     <header>
       <p class="eyebrow">Internal · working document</p>
       <h1 class="doctitle serif">Scene-Editing Pipeline — Design Plan</h1>
-      <p class="docsub">How the 93 scenarios that mining cannot supply get built: what the
-      pipeline produces, what a human verifies, and what to implement in which order.</p>
+      <p class="docsub">How the 83 actor-built scenarios that mining cannot supply get built:
+      what the pipeline produces, what a human verifies, and what to implement in which order.</p>
       <div class="plannote plain">
         <span class="nk">How to read this</span>
         <b>Part I</b> is the design. <b>Part II</b> is the per-leaf build spec — which assets,
@@ -1180,10 +1158,14 @@
       <p>NavSafe measures coverage in <b>taxonomy leaves</b>: <b>≥ 10 scenarios per leaf across
       28 leaves, 500 in total</b>. The 73 nuPlan scenario types are the <b>mining vocabulary</b> —
       the tags through which a leaf gets populated.</p>
-      <p>Most of the 500 come from mining navhard / navtest / test. Only the leaves mining
-      cannot serve are built here — <b>10 of the 28 leaves, 93 scenarios</b>:</p>
-      <pre class="planpre"><b>generated    93</b>   over 10 leaves                                  <span class="cm">(Part II)</span>
+      <p>Most of the 500 come from mining navhard / navtest / test. Of the ten leaves mining
+      cannot serve, nine are built here — <b>9 of the 28 leaves, 83 scenarios</b>. The tenth,
+      C-9 Single-Vehicle, has no actors at all — it is defined entirely by ground material and
+      HDRI, which this pipeline does not touch (§2 below). It is out of scope here and reported
+      unpopulated.</p>
+      <pre class="planpre"><b>generated    83</b>   over 9 leaves                                   <span class="cm">(Part II)</span>
 mined       407    over the remaining 18 leaves, ≥ 10 each → ~22 each
+unpopulated  10    C-9 — out of scope for this pipeline
 ──────────────────
 total       500</pre>
       <p>The output is not a scenario — it is a <b>recipe</b> for a scenario, precise enough
@@ -1309,7 +1291,7 @@ total       500</pre>
       ego reaches the conflict point") is solved into geometry, and it is why the recipe records
       <code>assumed_ego_arrival_window_s</code>: under a non-reactive design that solve needs an
       assumed ego arrival, taken from the log-replay ego.</p>
-      <p><b>Three extensions the ten leaves need:</b></p>
+      <p><b>Three extensions the nine leaves need:</b></p>
       <ul>
         <li><b>Switchable reference polyline.</b> Everything is currently anchored on the ego's
         logged route, and <code>crossing</code> approximates a cross-street approach as a lateral
@@ -1391,11 +1373,13 @@ LogReplayTraffic.step → agent_manager.update_agents(timestep=env.scenario_time
     <section id="pl-leaves">
       <div class="parthead">
         <p class="pk">Part II</p>
-        <h2 class="serif">The ten leaves</h2>
-        <p><b>7 leaves have no nuPlan type</b> — 10 scenarios each, built from nothing:
-        C-9 · C-10 · V-10 · V-11 · R-3 · R-4 · I-3. <b>3 leaves are too scarce to reach 10</b> —
+        <h2 class="serif">The nine leaves</h2>
+        <p><b>6 leaves have no nuPlan type</b> — 10 scenarios each, built from nothing:
+        C-10 · V-10 · V-11 · R-3 · R-4 · I-3. <b>3 leaves are too scarce to reach 10</b> —
         the deficit is built and the real scenarios are kept: C-7 (1 mined → 9) ·
-        V-8 (1 mined → 9) · R-2 (5 mined → 5).</p>
+        V-8 (1 mined → 9) · R-2 (5 mined → 5). A seventh no-nuPlan-type leaf, C-9
+        Single-Vehicle, is <b>out of scope</b> — this pipeline only inserts and moves actors,
+        and C-9 is defined entirely by ground material and HDRI (§1).</p>
       </div>
       <p>Each entry gives <b>asset · placement · trajectory · reviewer checklist</b>. Placement and
       trajectory are stated as authoring intent; §7 covers how that becomes baked arrays and how
@@ -1501,7 +1485,7 @@ nexussim/scenario/edits.py
       <code>e⁰</code>/<code>e⁺</code> pair side by side, and attach that leaf's checklist from
       Part II. The reviewer records a verdict plus a reason code; reason codes aggregate into
       template fixes rather than per-episode patches.</p>
-      <p>At 93 scenarios and a few seconds of video each, one review pass is a few hours and
+      <p>At 83 scenarios and a few seconds of video each, one review pass is a few hours and
       parallelises across people.</p>
     </section>
 
@@ -1545,9 +1529,10 @@ nexussim/scenario/edits.py
             </tr>
             <tr>
               <td>6</td>
-              <td><b>Last, the two that need a decision first</b></td>
-              <td>C-9 (does the server accept a pinned material / HDRI?) and V-10 (does any host
-              have on-ramp geometry?).</td>
+              <td><b>Last, the one that needs a decision first</b></td>
+              <td>V-10 — does any host have on-ramp geometry? C-9 is not on this list: it has
+              no actors, only ground material and HDRI, which this pipeline does not touch —
+              out of scope, reported unpopulated.</td>
             </tr>
           </tbody>
         </table>
@@ -2054,7 +2039,7 @@ new ResizeObserver(() => drawWires()).observe(board);
 
 /* =====================================================================
    Page furniture: theme, hero strip, capability cards, coverage table,
-   leaderboard, nav scroll-spy, BibTeX copy.
+   leaderboard, nav scroll-spy.
    ===================================================================== */
 
 // ---- theme toggle. The stylesheet already follows prefers-color-scheme; the
@@ -2138,25 +2123,11 @@ for (const a of navLinks) {
    document's own section index. Everything below only touches #mainPlan.
    ===================================================================== */
 
-// The ten leaves mining cannot serve. Fields are fixed by design: asset,
+// The nine actor-built leaves mining cannot serve (C-9 excluded: no actors,
+// out of scope for this pipeline). Fields are fixed by design: asset,
 // placement, trajectory, reviewer checklist — so no entry can quietly omit one.
 // `table` replaces placement/trajectory where a leaf has sub-scenarios (I-3).
 const PLAN_LEAVES = [
-  {
-    id: "C-9", name: "Single-Vehicle", count: "10 scenarios",
-    lede: "The one leaf with no actors at all: control loss induced by surface and visibility.",
-    asset: "<code>ground_material</code> ×6 (dry, wet, worn, gravel, low-friction patch, repainted) · <code>HDRI</code> ×4 (day, dusk, night, overcast). No objects.",
-    placement: "A material patch spanning the ego's lane over a <b>curved</b> segment of the route, 20–40 m past the hand-off; the HDRI is global to the scene. Host selection matters more here than placement: the segment must have enough curvature that surface and speed interact.",
-    trajectory: "None. The event is the ego entering the patch.",
-    checks: [
-      "the patch lies on the ego's actual driven path, inside the lane",
-      "curvature × approach speed genuinely stresses the envelope — a straight, slow segment makes the leaf vacuous",
-      "lighting is consistent across the whole scene, with no half-lit seam",
-      "the surface reads as the material it claims (a wet patch looks wet)",
-    ],
-    note: { kind: "warn", title: "Unresolved",
-      html: "Whether the served reconstruction accepts a pinned ground material or HDRI at all. If it does not, the fallback is host selection on existing adverse appearance plus a flat textured decal as the patch — decide this before committing to the leaf." },
-  },
   {
     id: "C-10", name: "Wrong-Way (crash)", count: "10 scenarios",
     lede: "Zero marginal asset cost: the intervention is the behaviour, not the object.",
@@ -2188,7 +2159,7 @@ const PLAN_LEAVES = [
   {
     id: "V-11", name: "Driving Wrong Way", count: "10 scenarios",
     lede: "A prohibition test: the ego must <em>not</em> do something the road physically allows.",
-    asset: "<code>one_way_sign</code> ×3 (do-not-enter, directional, wrong-way).",
+    asset: "<code>one_way</code> ×3 (do-not-enter, directional, wrong-way) — the <code>sign</code> registry's one-way allotment.",
     placement: "At the entrance of a one-way segment or divided-highway ramp on the ego's route, at correct roadside mounting height, <b>face turned toward the ego's approach</b>.",
     trajectory: "Static.",
     checks: [
@@ -2201,14 +2172,14 @@ const PLAN_LEAVES = [
   {
     id: "R-3", name: "Micromobility", count: "10 scenarios · 2 per embodiment",
     lede: "Unfamiliar kinematics in shared space. Results are reported <b>per embodiment, never pooled</b>, so the 10 split evenly.",
-    asset: "<code>delivery_robot</code> ×5 · <code>quadruped</code> ×3 · <code>humanoid</code> ×3 · <code>wheelchair+user</code> ×5 <b>composed</b> · <code>scooter_rider</code> ×3.",
+    asset: "<code>delivery_robot</code> ×5 · <code>quadruped</code> ×3 · <code>humanoid</code> ×3 · <code>wheelchair + user</code> ×5 <b>composed</b> · <code>scooter_rider</code> ×3.",
     placement: "At a curb, crosswalk or shared-space edge, entering the ego's lane: delivery robot off a sidewalk at a driveway; wheelchair at a marked crossing; quadruped mid-block; scooter from a bike lane.",
     trajectory: "<code>dart_out</code> or <code>cross_at_gap</code> at embodiment-appropriate speed: delivery robot 1.0–1.5 m/s · wheelchair 0.8–1.4 m/s · quadruped 1.5–3.0 m/s · humanoid 1.0–1.5 m/s · scooter 4–6 m/s. Non-negotiating.",
     checks: [
       "speed <b>and turn radius</b> are plausible for that embodiment — a wheelchair pivoting like a pedestrian is the characteristic authoring error",
       "the actor is visible early enough that a competent policy could respond",
       "contact would read as VRU severity, not vehicle severity",
-      "the composed <code>wheelchair+user</code> looks seated and correctly scaled",
+      "the composed <code>wheelchair + user</code> looks seated and correctly scaled",
     ],
     note: { kind: "warn", title: "Arithmetic conflict",
       html: "The subgroup rule asks for ≥ 5 meshes per embodiment (25 meshes across five), but 10 scenarios can show at most 10. Either this leaf needs more than 10 scenarios, or per-embodiment reporting runs at n = 2 — which cannot support a subgroup claim. Decide which, and say so in the paper." },
@@ -2423,16 +2394,6 @@ setView(planHash || localStorage.getItem("navsafe-view") === "plan" ? "plan" : "
         { scroll: false });
 if (planHash) document.querySelector(location.hash)?.scrollIntoView();
 
-// ---- BibTeX copy
-document.getElementById("copybib").addEventListener("click", async e => {
-  e.stopPropagation();
-  const btn = e.currentTarget;
-  try {
-    await navigator.clipboard.writeText(document.getElementById("bib").textContent);
-    btn.textContent = "Copied";
-  } catch { btn.textContent = "Select manually"; }
-  setTimeout(() => { btn.textContent = "Copy"; }, 1600);
-});
 </script>
 </body>
 </html>
