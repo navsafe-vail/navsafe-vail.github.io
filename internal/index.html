@@ -1,0 +1,1131 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>NavSafe — Internal plans</title>
+<meta name="robots" content="noindex, nofollow">
+<meta name="description" content="Internal working documents for NavSafe: pipeline design plans. Not part of the public release.">
+<link rel="icon" href="/favicon.svg" type="image/svg+xml">
+<link rel="alternate icon" href="/favicon.ico" sizes="16x16 32x32">
+<link rel="apple-touch-icon" href="/apple-touch-icon.png">
+<meta name="theme-color" content="#F6F5F2" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#191A1C" media="(prefers-color-scheme: dark)">
+<style>
+  /* ---------------------------------------------------------------------
+     Palette. The six ability hues are the page's only categorical scale:
+     hue-locked across light and dark, and re-stepped so that every adjacent
+     pair clears the CVD separation and normal-vision floors (the previous
+     set collapsed A2/A3 under protanopia at deltaE 4.2). Identity is never
+     carried by colour alone — every mark keeps its A1..A6 label.
+     ------------------------------------------------------------------ */
+  :root {
+    --bg: #F6F5F2; --panel: #FFFFFF; --panel-2: #FBFAF8;
+    --ink: #23221F; --ink-dim: #6E6A61; --ink-faint: #918D84;
+    --line: #DDD9D1; --line-soft: #EAE7E0; --ghost: #A8A49B;
+    --a1: #497DC9; --a2: #52A557; --a3: #986A1E;
+    --a4: #906EB7; --a5: #A7405E; --a6: #20A39D;
+    --wire: #CFCBC2;
+    --shadow: 0 1px 2px rgba(35,34,31,.05), 0 8px 24px -16px rgba(35,34,31,.28);
+    --typew: 480px;
+    --maxw: 1080px;
+    color-scheme: light;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #191A1C; --panel: #202225; --panel-2: #1D1F21;
+      --ink: #E7E5E0; --ink-dim: #97948D; --ink-faint: #7B7871;
+      --line: #33353A; --line-soft: #2A2C30; --ghost: #5C5E63;
+      --a1: #5087DA; --a2: #4DAC54; --a3: #A56F05;
+      --a4: #AB76E2; --a5: #C05070; --a6: #07AAA3;
+      --wire: #3A3C41;
+      --shadow: 0 1px 2px rgba(0,0,0,.3), 0 8px 24px -16px rgba(0,0,0,.7);
+      color-scheme: dark;
+    }
+  }
+  :root[data-theme="dark"] {
+    --bg: #191A1C; --panel: #202225; --panel-2: #1D1F21;
+    --ink: #E7E5E0; --ink-dim: #97948D; --ink-faint: #7B7871;
+    --line: #33353A; --line-soft: #2A2C30; --ghost: #5C5E63;
+    --a1: #5087DA; --a2: #4DAC54; --a3: #A56F05;
+    --a4: #AB76E2; --a5: #C05070; --a6: #07AAA3;
+    --wire: #3A3C41;
+    --shadow: 0 1px 2px rgba(0,0,0,.3), 0 8px 24px -16px rgba(0,0,0,.7);
+    color-scheme: dark;
+  }
+
+
+  * { box-sizing: border-box; }
+  html { scroll-behavior: smooth; }
+  body {
+    margin: 0; background: var(--bg); color: var(--ink);
+    font: 15px/1.6 ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+    -webkit-font-smoothing: antialiased;
+  }
+  a { color: inherit; }
+  .serif { font-family: ui-serif, Georgia, "Iowan Old Style", "Times New Roman", serif; }
+  .wrap { max-width: var(--maxw); margin: 0 auto; padding: 0 28px; }
+  .wrap-wide { max-width: 1360px; margin: 0 auto; padding: 0 28px; }
+  section { scroll-margin-top: 68px; }
+
+
+  /* ---------- top nav ---------- */
+  nav#top {
+    position: sticky; top: 0; z-index: 40;
+    background: color-mix(in srgb, var(--bg) 86%, transparent);
+    backdrop-filter: saturate(180%) blur(10px);
+    border-bottom: 1px solid var(--line-soft);
+  }
+  nav#top .inner {
+    max-width: 1360px; margin: 0 auto; padding: 0 28px; height: 52px;
+    display: flex; align-items: center; gap: 22px;
+  }
+  .brand {
+    font: 700 13px/1 ui-sans-serif, system-ui, sans-serif; letter-spacing: .16em;
+    text-transform: uppercase; text-decoration: none; white-space: nowrap;
+  }
+  .brand em { font-style: normal; color: var(--a1); }
+  /* min-width:0 so the flex item may shrink below its content width — without it
+     the link row pushes the document wider than the viewport on narrow screens
+     instead of scrolling inside itself. */
+  nav#top .links {
+    display: flex; gap: 18px; margin-left: auto; overflow-x: auto; min-width: 0;
+    scrollbar-width: none;
+  }
+  nav#top .links::-webkit-scrollbar { display: none; }
+  nav#top .links a {
+    font-size: 12.5px; color: var(--ink-dim); text-decoration: none; white-space: nowrap;
+    padding: 4px 0; border-bottom: 1.5px solid transparent; transition: color .12s, border-color .12s;
+  }
+  nav#top .links a:hover { color: var(--ink); }
+  nav#top .links a.active { color: var(--ink); border-bottom-color: var(--a1); }
+  /* the internal view's document selector: same row, same affordance, but the
+     items are buttons because they swap a document rather than jump to an anchor. */
+  nav#top .links button {
+    appearance: none; background: none; border: 0; border-bottom: 1.5px solid transparent;
+    font: inherit; font-size: 12.5px; color: var(--ink-dim); cursor: pointer;
+    padding: 4px 0; white-space: nowrap; transition: color .12s, border-color .12s;
+  }
+  nav#top .links button:hover { color: var(--ink); }
+  nav#top .links button[aria-current="true"] { color: var(--ink); border-bottom-color: var(--a1); }
+  #themebtn {
+    appearance: none; background: none; border: 1px solid var(--line); border-radius: 6px;
+    color: var(--ink-dim); cursor: pointer; width: 30px; height: 28px; flex: none;
+    display: grid; place-items: center; margin-left: 4px;
+  }
+  #themebtn:hover { color: var(--ink); border-color: var(--ghost); }
+  #themebtn svg { width: 15px; height: 15px; }
+
+
+  .eyebrow {
+    font-size: 11px; font-weight: 700; letter-spacing: .16em; text-transform: uppercase;
+    color: var(--ink-faint); margin: 0 0 10px;
+  }
+
+  /* ---------------------------------------------------------------------
+     Internal plan page. Same palette and furniture as the public page, but
+     laid out as a document: one measure of text, a sticky section index, and
+     no decoration that isn't carrying information.
+     ------------------------------------------------------------------ */
+  [hidden] { display: none !important; }
+
+  #viewsel { flex: none; margin-right: 4px; }
+
+  .planwrap {
+    max-width: 1140px; margin: 0 auto; padding: 0 28px;
+    display: grid; grid-template-columns: 208px minmax(0, 1fr); gap: 56px; align-items: start;
+  }
+  /* the index now lists every leaf, so it can outgrow a short viewport —
+     it scrolls inside itself rather than pushing the sticky column past the fold. */
+  .plantoc {
+    position: sticky; top: 76px; padding: 46px 0 0;
+    max-height: calc(100vh - 96px); overflow-y: auto; scrollbar-width: thin;
+  }
+  .plantoc .tt {
+    font-size: 10.5px; font-weight: 700; letter-spacing: .14em; text-transform: uppercase;
+    color: var(--ink-faint); margin: 0 0 9px;
+  }
+  .plantoc a {
+    display: block; font-size: 12.5px; color: var(--ink-dim); text-decoration: none;
+    padding: 3.5px 0 3.5px 11px; border-left: 2px solid var(--line-soft);
+    transition: color .12s, border-color .12s;
+  }
+  .plantoc a:hover { color: var(--ink); }
+  .plantoc a.active { color: var(--ink); border-left-color: var(--a1); }
+  .plantoc a.part {
+    margin-top: 13px; font-size: 10.5px; font-weight: 700; letter-spacing: .12em;
+    text-transform: uppercase; color: var(--ink-faint); border-left-color: transparent;
+  }
+  .plantoc a.part:first-child { margin-top: 0; }
+  /* not .leaf — that class already belongs to the taxonomy map's nodes */
+  .plantoc a.tocleaf { font-size: 11.5px; padding-left: 20px; }
+  @media (max-width: 940px) { .planwrap { grid-template-columns: 1fr; gap: 0; } .plantoc { display: none; } }
+
+  .plandoc { padding: 46px 0 0; min-width: 0; }
+  .plandoc .doctitle {
+    font-size: clamp(26px, 3.4vw, 36px); font-weight: 600; letter-spacing: -0.02em;
+    line-height: 1.15; margin: 12px 0 0;
+  }
+  .plandoc .docsub { color: var(--ink-dim); max-width: 72ch; margin: 12px 0 0; font-size: 14.5px; }
+  .plandoc section { margin: 0; padding: 0; scroll-margin-top: 68px; }
+  .plandoc .parthead {
+    margin: 66px 0 0; padding: 0 0 10px; border-bottom: 1px solid var(--line);
+  }
+  .plandoc .parthead .pk {
+    font: 700 10.5px/1 ui-monospace, Menlo, monospace; letter-spacing: .16em;
+    text-transform: uppercase; color: var(--ink-faint);
+  }
+  .plandoc .parthead h2 {
+    margin: 9px 0 0; font-size: 22px; font-weight: 600; letter-spacing: -0.015em;
+  }
+  .plandoc .parthead p { margin: 8px 0 0; color: var(--ink-dim); font-size: 13.5px; max-width: 74ch; }
+
+  /* inline, not flex: the heading text may itself contain <em>/<code>, and flex
+     would blow each of those out into its own item with a gap around it. */
+  .plandoc h3 { margin: 40px 0 0; font-size: 16.5px; font-weight: 600; letter-spacing: -0.01em; }
+  .plandoc h3 .no {
+    font: 700 11.5px/1 ui-monospace, Menlo, monospace; color: var(--ink-faint);
+    margin-right: 10px;
+  }
+  .plandoc h4 {
+    margin: 26px 0 0; font-size: 13px; font-weight: 700; letter-spacing: .07em;
+    text-transform: uppercase; color: var(--ink-dim);
+  }
+  .plandoc p { margin: 12px 0 0; max-width: 74ch; font-size: 14.5px; line-height: 1.7; }
+  .plandoc ul { margin: 12px 0 0; padding-left: 18px; max-width: 74ch; }
+  .plandoc li { margin: 6px 0 0; font-size: 14.5px; line-height: 1.65; }
+  .plandoc code {
+    font: 12.5px/1.4 ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+    background: color-mix(in srgb, var(--ink) 6%, transparent);
+    border-radius: 3px; padding: 1px 4px;
+  }
+  .plandoc b { font-weight: 600; }
+
+  .planpre {
+    margin: 16px 0 0; padding: 14px 16px; background: var(--panel-2);
+    border: 1px solid var(--line-soft); border-radius: 8px; overflow-x: auto;
+    font: 12px/1.65 ui-monospace, "SF Mono", Menlo, Consolas, monospace; color: var(--ink-dim);
+  }
+  .planpre b { color: var(--ink); font-weight: 600; }
+  .planpre .cm { color: var(--ink-faint); }
+
+  .planclaim {
+    margin: 18px 0 0; padding: 12px 0 12px 16px; border-left: 3px solid var(--a1);
+    font-size: 14.5px; max-width: 74ch;
+  }
+
+  .plannote {
+    margin: 18px 0 0; padding: 14px 16px; border: 1px solid var(--line-soft);
+    border-left: 3px solid var(--ac, var(--a3)); border-radius: 8px; background: var(--panel);
+    font-size: 13.5px; line-height: 1.65; max-width: 76ch;
+  }
+  .plannote .nk {
+    display: block; font: 700 10px/1 ui-monospace, Menlo, monospace; letter-spacing: .12em;
+    text-transform: uppercase; color: var(--ac, var(--a3)); margin: 0 0 7px;
+  }
+  .plannote.warn { --ac: var(--a5); }
+  .plannote.plain { --ac: var(--ghost); }
+
+  table.plantab {
+    width: 100%; border-collapse: collapse; margin: 16px 0 0; font-size: 13px;
+    min-width: 460px;
+  }
+  table.plantab th, table.plantab td {
+    padding: 8px 12px 8px 0; text-align: left; vertical-align: top;
+    border-bottom: 1px solid var(--line-soft);
+  }
+  table.plantab thead th {
+    font-size: 10px; letter-spacing: .1em; text-transform: uppercase;
+    color: var(--ink-faint); font-weight: 700;
+  }
+  table.plantab td:first-child { white-space: nowrap; }
+  .planscroll { overflow-x: auto; }
+
+  /* the nine leaves */
+  .leafcard {
+    margin: 20px 0 0; scroll-margin-top: 68px; background: var(--panel); border: 1px solid var(--line-soft);
+    border-left: 3px solid var(--ac); border-radius: 10px; padding: 16px 20px 18px;
+    box-shadow: var(--shadow);
+  }
+  .leafcard .lhead { display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap; }
+  .leafcard .lid {
+    font: 700 12px/1 ui-monospace, Menlo, monospace; color: var(--ac); letter-spacing: .06em;
+  }
+  .leafcard .lname { font-size: 16px; font-weight: 600; letter-spacing: -0.01em; }
+  .leafcard .lcount {
+    margin-left: auto; font: 11px/1 ui-monospace, Menlo, monospace; color: var(--ink-dim);
+    border: 1px solid var(--line); border-radius: 999px; padding: 4px 9px; white-space: nowrap;
+  }
+  .leafcard .llede { margin: 9px 0 0; font-size: 13.5px; color: var(--ink-dim); max-width: 74ch; }
+  .leafrow {
+    display: grid; grid-template-columns: 88px minmax(0, 1fr); gap: 16px;
+    padding: 11px 0; border-top: 1px solid var(--line-soft); margin-top: 12px;
+  }
+  .leafrow + .leafrow { margin-top: 0; }
+  .leafrow .lk {
+    font: 700 9.5px/1.5 ui-monospace, Menlo, monospace; letter-spacing: .12em;
+    text-transform: uppercase; color: var(--ink-faint); padding-top: 3px;
+  }
+  .leafrow .lv { font-size: 13.5px; line-height: 1.62; }
+  .leafrow .lv p { margin: 0; font-size: 13.5px; max-width: none; }
+  .leafrow ul.checks { margin: 0; padding: 0; list-style: none; max-width: none; }
+  .leafrow ul.checks li {
+    margin: 0 0 6px; padding-left: 19px; position: relative; font-size: 13.5px; line-height: 1.6;
+  }
+  .leafrow ul.checks li:last-child { margin-bottom: 0; }
+  .leafrow ul.checks li::before {
+    content: ""; position: absolute; left: 0; top: 6px; width: 9px; height: 9px;
+    border: 1.4px solid var(--ghost); border-radius: 2px;
+  }
+  .leafcard .plannote { margin-top: 14px; }
+  .leafcard table.plantab { min-width: 0; }
+  @media (max-width: 620px) { .leafrow { grid-template-columns: 1fr; gap: 4px; } }
+
+  .plandocs { min-width: 0; }
+  .plantoc .tocempty { font-size: 12.5px; color: var(--ink-faint); padding: 3.5px 0 0 11px; }
+
+  .planempty {
+    margin: 30px 0 0; padding: 26px 24px; border: 1px dashed var(--line);
+    border-radius: 10px; background: var(--panel-2); max-width: 74ch;
+  }
+  .planempty .ek {
+    margin: 0; font: 700 10.5px/1 ui-monospace, Menlo, monospace; letter-spacing: .14em;
+    text-transform: uppercase; color: var(--ink-faint);
+  }
+  .planempty p + p { margin: 10px 0 0; font-size: 14px; color: var(--ink-dim); }
+
+  .planfoot {
+    margin: 76px 0 0; border-top: 1px solid var(--line-soft); padding: 24px 0 70px;
+    color: var(--ink-faint); font-size: 12px;
+  }
+
+
+  @media (prefers-reduced-motion: reduce) { * { transition: none !important; } html { scroll-behavior: auto; } }
+
+  /* ---------- this page's own nav furniture ---------- */
+  .navtag {
+    font: 700 10px/1 ui-monospace, Menlo, monospace; letter-spacing: .14em;
+    text-transform: uppercase; color: var(--ink-dim); border: 1px solid var(--line);
+    border-radius: 999px; padding: 5px 9px; flex: none;
+  }
+  .backlink {
+    font-size: 12.5px; color: var(--ink-dim); text-decoration: none; white-space: nowrap;
+    flex: none; margin-left: 18px;
+  }
+  .backlink:hover { color: var(--ink); }
+  @media (max-width: 700px) { .backlink, .navtag { display: none; } }
+</style>
+</head>
+<body>
+
+<nav id="top"><div class="inner">
+  <a class="brand" href="/"><em>Nav</em>Safe</a>
+  <span class="navtag">Internal</span>
+  <!-- the top row selects the document; the sections of whichever document is
+       open are the left-hand contents index. -->
+  <div class="links" id="links-plan">
+    <button type="button" data-doc="scene" aria-current="true">Scene editing pipeline</button>
+    <button type="button" data-doc="eval">Evaluation pipeline</button>
+  </div>
+  <a class="backlink" href="/">Public site&nbsp;&nearr;</a>
+  <button id="themebtn" title="Toggle light / dark" aria-label="Toggle light / dark">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+      <circle cx="12" cy="12" r="4.2"/><path d="M12 2.4v2.2M12 19.4v2.2M2.4 12h2.2M19.4 12h2.2M5.2 5.2l1.6 1.6M17.2 17.2l1.6 1.6M18.8 5.2l-1.6 1.6M6.8 17.2l-1.6 1.6"/>
+    </svg>
+  </button>
+</div></nav>
+
+<!-- =====================================================================
+     Scene-Editing Pipeline design plan. Source of record:
+     Obsidian NavSafe/"Scene Editing Pipeline — Design Plan.md" (2026-08-07).
+     Part II is rendered from PLAN_LEAVES in the script below so every leaf
+     entry keeps the same four fields and its ability colour.
+     ===================================================================== -->
+<main>
+<div class="planwrap">
+
+  <aside class="plantoc">
+    <p class="tt">Contents</p>
+    <nav id="tocnav"></nav>
+  </aside>
+
+  <div class="plandocs">
+
+  <article class="plandoc" id="doc-scene">
+
+    <header>
+      <p class="eyebrow">Internal · working document</p>
+      <h1 class="doctitle serif">Scene-Editing Pipeline — Design Plan</h1>
+      <p class="docsub">How the 83 actor-built scenarios that mining cannot supply get built:
+      what the pipeline produces, what a human verifies, and what to implement in which order.</p>
+      <div class="plannote plain">
+        <span class="nk">How to read this</span>
+        <b>Part I</b> is the design. <b>Part II</b> is the per-leaf build spec — which assets,
+        where they go, how they move, and what a human confirms. <b>Part III</b> is what to
+        build, in order.
+      </div>
+    </header>
+
+    <!-- ---------------------------- PART I ---------------------------- -->
+    <section id="pl-design">
+      <div class="parthead">
+        <p class="pk">Part I</p>
+        <h2 class="serif">The design</h2>
+        <p>What the pipeline is responsible for, what it deliberately is not, and the one
+        artifact it produces — a recipe precise enough to rebuild an identical scene.</p>
+      </div>
+    </section>
+
+    <section id="pl-1">
+      <h3><span class="no">1</span> What this pipeline is for</h3>
+      <p>NavSafe measures coverage in <b>taxonomy leaves</b>: <b>≥ 10 scenarios per leaf across
+      28 leaves, 500 in total</b>. The 73 nuPlan scenario types are the <b>mining vocabulary</b> —
+      the tags through which a leaf gets populated.</p>
+      <p>Most of the 500 come from mining navhard / navtest / test. Only the leaves mining
+      cannot serve are built here — <b>9 of the 28 leaves, 83 scenarios</b>. C-9 Single-Vehicle
+      is not among them: it has no actors at all — it is defined entirely by ground material and
+      HDRI, which this pipeline does not touch (§2 below) — so it is populated by mining like the
+      rest.</p>
+      <pre class="planpre"><b>generated    83</b>   over 9 leaves                                   <span class="cm">(Part II)</span>
+mined       417    over the remaining 19 leaves, ≥ 10 each → ~22 each
+──────────────────
+total       500</pre>
+      <p>The output is not a scenario — it is a <b>recipe</b> for a scenario, precise enough
+      that anyone can rebuild the identical scene later.</p>
+    </section>
+
+    <section id="pl-2">
+      <h3><span class="no">2</span> What the pipeline does</h3>
+      <p>Three things:</p>
+      <ul>
+        <li><b>Fetch the asset</b> the recipe names — from UrbanVerse or AssetHarvester,
+        converted to a 3DGS PLY the NuRec server can load.</li>
+        <li><b>Place it and move it</b> as the recipe specifies — a fixed pose, or a per-frame
+        trajectory.</li>
+        <li><b>Build and freeze the recipe</b> — resolve the authored intent into absolute
+        numbers and write an immutable file.</li>
+      </ul>
+      <p>Everything else is out of scope: the mining sweep, host-scene selection,
+      reconstruction, running the policy, tracing, scoring, coverage tables.</p>
+    </section>
+
+    <section id="pl-3">
+      <h3><span class="no">3</span> What the pipeline does <em>not</em> judge</h3>
+      <p>The pipeline does not decide whether a built scenario is correct, plausible or
+      faithful to its leaf. <b>A human does</b>, from a rendered episode. So there is no
+      automated check for visibility, scale, orientation, grounding, appearance harmony, or
+      whether the event reads as its intended leaf — those are all perceptual judgments, and
+      Part II gives the reviewer a checklist per leaf instead.</p>
+      <p>The one thing code does verify is <b>file integrity</b>: a <code>sha256</code> per baked
+      pose array, so a corrupted or hand-edited recipe fails loudly rather than quietly
+      replaying something else.</p>
+    </section>
+
+    <section id="pl-4">
+      <h3><span class="no">4</span> What a recipe pins</h3>
+      <p>Injected actors are <b>non-reactive</b>, so an actor's entire trajectory is knowable
+      before any policy runs. The recipe is therefore <b>fully baked</b> — per-frame absolute
+      poses, with no controller, parameters, random seed or solver at use time.</p>
+      <p class="planclaim">Same recipe → the same scenario, independent of the policy under test.</p>
+      <div class="planscroll">
+        <table class="plantab">
+          <tbody>
+            <tr><td><b>identity</b></td><td>which asset (source uid + <code>sha256</code>), which host scene, which <code>world_version</code> and recon artifact</td></tr>
+            <tr><td><b>geometry</b></td><td>per-frame poses in <b>ego frame-0</b> coordinates, plus the route polyline they are measured against</td></tr>
+            <tr><td><b>semantics</b></td><td>which leaf this populates, and the reviewer checklist that decides whether it does</td></tr>
+            <tr><td><b>integrity</b></td><td><code>sha256</code> of every baked pose array</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <section id="pl-5">
+      <h3><span class="no">5</span> The four edit ops</h3>
+      <p>All four already exist and are render/sim-consistent — <b>the render mirrors the sim
+      state</b>, with no render-only or score-only objects.</p>
+      <div class="planscroll">
+        <table class="plantab">
+          <thead><tr><th>op</th><th>what it does</th></tr></thead>
+          <tbody>
+            <tr><td><code>insert</code></td><td>new object at a fixed pose</td></tr>
+            <tr><td><code>replace</code></td><td>delete an agent, draw an asset on <b>its</b> trajectory</td></tr>
+            <tr><td><code>relocate</code></td><td>re-pose an existing actor on a synthetic path, optionally swapping the asset</td></tr>
+            <tr><td><code>remove</code></td><td>drop non-ego agents</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <p><b>Prefer <code>relocate</code> over <code>insert</code> where a suitable actor exists.</b>
+      With no archetype swap it keeps the actor's baked appearance — a pure per-frame pose
+      override — which is the most reliable path, because the server can silently drop a
+      freshly inserted asset.</p>
+    </section>
+
+    <section id="pl-6">
+      <h3><span class="no">6</span> Event timing under non-reactive actors</h3>
+      <p>A non-reactive actor's timing <b>relative to the ego</b> depends on how fast the policy
+      drives. A car baked to cross at t = 3.2 s is missed entirely by a slow policy and struck
+      head-on by a fast one.</p>
+      <p>The remedy is placement discipline: put the scenario-defining event a <b>short arc after
+      the replay hand-off</b>, before ego divergence accumulates, and record the <b>ego-arrival
+      window</b> the recipe assumes so a mistimed episode is detectable. This bites hardest on
+      V-10 and C-7, where the whole test is a timed gap.</p>
+    </section>
+
+    <section id="pl-7">
+      <h3><span class="no">7</span> Trajectory: authoring, storage, and how eval applies it</h3>
+
+      <h4>The native format</h4>
+      <p>A trajectory is a <b>per-frame state array on a track</b> — the simulator's own
+      representation, with <code>T</code> = the host's scenario frame count:</p>
+      <pre class="planpre">track["state"] = {
+    "position": (T, 3) float32,   <span class="cm"># x, y, z</span>
+    "heading":  (T,)   float32,   <span class="cm"># rad</span>
+    "velocity": (T, 2) float32,   <span class="cm"># vx, vy, world frame</span>
+    "valid":    (T,)   bool,      <span class="cm"># does the actor exist this frame</span>
+}</pre>
+      <p>Producing those four arrays is the whole job. Everything below is either how they are
+      authored or how they are read.</p>
+
+      <h4>Authoring: route-frame parameters</h4>
+      <p>A trajectory is authored as <b>(reference polyline, template, parameters)</b> — arc
+      length <code>s</code> along the reference, lateral offset, heading offset, speed — because
+      that is how a human states the intent ("52 m ahead, in my lane, facing me, 8 m/s").
+      World coordinates are the output, never the input.</p>
+      <p>The <b>reference polyline</b> is the ego's logged route, a lane centreline from the map, or
+      an inline polyline. Which one it is decides the shape of the motion, because <b>heading follows
+      the reference</b>: a turn-lane centreline through a junction produces a turning vehicle, a
+      mainline lane that converges with a ramp produces a stream that converges with it, and a
+      sidewalk polyline produces an actor that travels along the kerb.</p>
+      <p><b>Speed is signed.</b> Positive travels with the reference's direction, negative against
+      it — which is how an oncoming actor closes on the ego, and the heading follows from the
+      velocity vector, so nothing extra is needed to turn it around.</p>
+      <div class="planscroll">
+        <table class="plantab">
+          <thead><tr><th>template</th><th>motion</th><th>key parameters</th></tr></thead>
+          <tbody>
+            <tr><td><code>static</code></td><td>a fixed pose</td><td><code>arc</code>, <code>lateral</code>, <code>yaw_offset_deg</code></td></tr>
+            <tr><td><code>dynamic</code></td><td>constant speed along the reference, either direction</td><td>+ <code>speed</code> (signed)</td></tr>
+            <tr><td><code>lateral_schedule</code></td><td>advances while stepping through lateral offsets — a single transfer for a cut-in, out-and-back for an overtake</td><td>+ <code>waypoints</code> (frame → lateral)</td></tr>
+            <tr><td><code>dart_out</code></td><td>holds one arc position and traverses laterally across the reference, waiting at the start offset until it goes</td><td>+ <code>start_lateral</code>, <code>end_lateral</code>, <code>speed</code>, <code>conflict_frame</code></td></tr>
+            <tr><td><code>group</code></td><td>N actors on one reference at a declared gap pattern, with one gap marked usable</td><td>+ <code>count</code>, <code>gaps_m</code>, <code>usable_gap_index</code></td></tr>
+          </tbody>
+        </table>
+      </div>
+      <p>Timing intents are solved into geometry rather than authored as arc values. A recipe can say
+      "arrive as the ego reaches the conflict point"; the baker resolves the conflict point — for two
+      different references, the intersection of the actor's polyline with the ego's route — and back
+      solves the start arc. Under a non-reactive design that solve needs an assumed ego arrival,
+      taken from the log-replay ego, which is what the recipe's
+      <code>assumed_ego_arrival_window_s</code> records.</p>
+
+      <h4>What this covers across the nine leaves</h4>
+      <div class="planscroll">
+        <table class="plantab">
+          <thead><tr><th>leaf</th><th>behaviour</th><th>template</th></tr></thead>
+          <tbody>
+            <tr><td>C-10</td><td>a vehicle closing head-on in the ego's own lane</td><td><code>dynamic</code>, negative speed on the ego route</td></tr>
+            <tr><td>C-7</td><td>a vehicle closing in a narrowed two-way corridor, plus static constrictors</td><td><code>dynamic</code> negative + <code>static</code></td></tr>
+            <tr><td>V-10</td><td>a mainline stream with one usable gap, converging with the ego's ramp</td><td><code>group</code> on the mainline lane centreline</td></tr>
+            <tr><td>V-11 · V-8</td><td>a posted sign the ego must obey</td><td><code>static</code></td></tr>
+            <tr><td>R-4</td><td>an animal darting from the verge and continuing off the far side</td><td><code>dart_out</code></td></tr>
+            <tr><td>R-3</td><td>an embodiment entering from a kerb or sidewalk, straight or turning</td><td><code>dart_out</code>; <code>dynamic</code> on a sidewalk polyline where it turns</td></tr>
+            <tr><td>R-2</td><td>a cyclist arriving from a side street · a group sharing the lane ahead</td><td><code>dynamic</code> on the cross-street centreline · <code>group</code></td></tr>
+            <tr><td>I-3</td><td>crash scene, officer, school bus, and both negative controls</td><td><code>static</code></td></tr>
+            <tr><td>I-3 · emergency vehicle</td><td>overtaking the ego from behind, out of the lane and back</td><td><code>dynamic</code> + <code>lateral_schedule</code></td></tr>
+          </tbody>
+        </table>
+      </div>
+      <p>Every behaviour the nine leaves ask for reduces to one of the five templates on one of the
+      three reference kinds. The two that carry the most weight are a <b>signed</b> speed, which is
+      what makes an oncoming actor expressible at all, and a <b>switchable reference</b>, which is
+      what makes cross traffic, converging streams and turning actors follow real road geometry
+      instead of an offset from the ego's own path.</p>
+      <p>Constant speed is enough throughout: no leaf needs an acceleration or braking profile.
+      A standing start is already what <code>dart_out</code> does — the actor holds its start offset
+      for the pre-event frames and then goes — and where the ego's reaction time matters it is set by
+      <code>speed</code> and <code>arc</code>, not by how quickly the actor reaches its speed.
+      <code>group</code> is a convenience over N <code>dynamic</code> actors sharing one reference;
+      it exists because <code>usable_gap_index</code> makes "exactly one gap is usable" declarative,
+      which is what V-10's reviewer checklist reads.</p>
+
+      <h4>Worked example: a dart-out</h4>
+      <p>The roadside dart R-4, R-3 and R-2 share is <code>dart_out</code>: the actor holds one arc
+      position on the reference and moves purely across it. A dog:</p>
+      <pre class="planpre">authored:
+  template: dart_out
+  reference: ego_route
+  arc: 25.0                   <span class="cm"># 25 m past the hand-off</span>
+  start_lateral: -5.0         <span class="cm"># right shoulder (+left is positive)</span>
+  end_lateral:   +5.0         <span class="cm"># exits past the far edge</span>
+  speed: 5.0                  <span class="cm"># m/s — a dog</span>
+  conflict_frame: 22          <span class="cm"># frame it reaches the lane centre</span></pre>
+      <p>The baker turns the crossing speed into a frame span and places it around the conflict
+      frame:</p>
+      <pre class="planpre">duration       = |end_lateral − start_lateral| / (speed × dt_s)
+               = 10.0 / (5.0 × 0.1) = 20 frames
+crossing_start = conflict_frame − duration/2 = 22 − 10 = 12</pre>
+      <p>Frames 0–11 the animal waits at the verge, 12–31 it crosses, 32 onward it is off the far
+      side — and heading is perpendicular to the road throughout, including the still frames at
+      either end.</p>
+
+      <div class="plannote plain">
+        <span class="nk">Authoring rules for a lateral sweep</span>
+        <ul style="margin-top:0">
+          <li><b>End clear of the road edge.</b> The actor holds its final lateral offset for the
+          rest of the episode, so a sweep ending at the lane centre leaves a static obstacle parked
+          in the lane — a different leaf entirely.</li>
+          <li><b>Keep the sweep symmetric about the lane centre</b>, so
+          <code>conflict_frame</code> means the frame the actor reaches the centre.</li>
+          <li><b>Take lateral values from the host probe's cross-section.</b> Offsets are measured
+          from the reference centreline, so whether −5.0 m is the shoulder, the verge or the
+          oncoming lane is a property of the host, not a constant.</li>
+          <li><b>Hold the crossing heading through the still frames</b> at either end, so the actor
+          does not rotate on the spot when it starts and stops.</li>
+        </ul>
+      </div>
+
+      <div class="plannote plain">
+        <span class="nk">Frame rate</span>
+        <code>T</code> and <code>dt_s</code> come from the host's own frame timestamps, never from a
+        default. Every speed-derived quantity — a crossing's frame span, the baked velocity — scales
+        with <code>dt_s</code>, which is why the recipe records both it and
+        <code>frame_timestamps_us</code> and refuses a host whose rate disagrees.
+      </div>
+
+      <h4>Storage: bake the output, inline it</h4>
+      <p>Store the arrays, not the parameters. The generator depends on the host's sampled route,
+      on <code>T</code>, on <code>dt_s</code> and on the hand-off frame; freezing parameters would
+      let any of those silently change the trajectory later.</p>
+      <p>At navhard's <code>T = 44</code> an actor's four arrays are ~1.2 KB, so they are
+      <b>inlined in the recipe</b> — one file, no companion-file drift, and the recipe's own
+      checksum covers everything. A sidecar <code>.npz</code> plus <code>sha256</code> is the
+      fallback for long episodes.</p>
+      <ul>
+        <li><b>All four arrays are baked, not just position.</b> <code>velocity</code> because TTC,
+        BEV and the agent observations read it, and recomputing it from finite differences at
+        replay would give different numbers. <code>valid</code> because an actor need not exist at
+        every frame.</li>
+        <li><b>Static objects store one pose</b> plus <code>static: true</code>; the loader expands it.</li>
+        <li><b>Stored alongside:</b> <code>T</code>, <code>dt_s</code>, <code>frame_timestamps_us</code>
+        (so a host mismatch is detectable), <code>after_frame</code> (the arc-0 anchor),
+        <code>keep_appearance</code> (decides the z convention), and the authored parameters plus
+        reference polyline as <b>documentation</b> — diffable and re-authorable, but never
+        re-executed at replay.</li>
+      </ul>
+
+      <h4>Applying at eval</h4>
+      <p>A baked trajectory is <b>indistinguishable from a logged one</b> — both are
+      <code>track["state"]</code> arrays indexed by <code>scenario_timestep</code>. So it rides the
+      existing log-replay path:</p>
+      <pre class="planpre"><b>recipe.yaml</b>
+  │  replay.py — verify checksum, build the edit spec
+  ▼
+env_cfg.scenario_edits = [{"tool": "apply_baked_track", ...}]
+  │  eval_py123d.py switches to NexusSimEditEnv when edits are present
+  ▼  <span class="cm">(the stock env stays pristine)</span>
+apply_scenario_edits(sd, edits)          <span class="cm">— once at load, idempotent via a metadata marker</span>
+  ▼
+sd["tracks"][id]["state"] = {position, heading, velocity, valid}
+  │  per step
+  ▼
+LogReplayTraffic.step → agent_manager.update_agents(timestep=env.scenario_timestep)
+  │
+  ├──▶ agent_states → BEV · collision · TTC · scoring
+  └──▶ renderer mirror (_build_dynamic_objects) → NuRec per-frame pose</pre>
+      <p><code>env.scenario_timestep</code> <b>is</b> the array index: episode frame <em>k</em> reads
+      element <em>k</em>. Both consumers read the same number, which is why the render mirrors the
+      sim state.</p>
+      <p><b>One new edit tool is needed</b> — <code>apply_baked_track</code>, which writes the arrays
+      into the track instead of computing them, registered alongside the existing tools in
+      <code>EDIT_TOOLS</code>. The env, traffic manager, renderer and scoring are <b>unchanged</b>,
+      because what they see is an ordinary logged track.</p>
+
+      <h4>Three conventions the recipe must pin</h4>
+      <ul>
+        <li><b>Arrays index scenario frames, not frames since the hand-off.</b>
+        <code>scenario_timestep</code> starts at 0 and <code>ego_replay_frames</code> is a frame
+        number on the same axis, so arrays must cover <code>0 … T−1</code> including the
+        pre-hand-off replay stretch. <code>arc</code> parameters, meanwhile, are measured from the
+        hand-off as arc 0 — two different origins, and both are recorded.</li>
+        <li><b><code>valid = False</code> means moved off-screen, not deleted.</b> The server has no
+        delete flag, so the renderer relocates absent actors out of view. Where that off-screen
+        pose lands can still be visible from another camera, which makes it a reviewer check
+        rather than a guarantee.</li>
+        <li><b>The z convention depends on <code>keep_appearance</code>.</b> Kept-appearance actors
+        are ground-clamped by the renderer, so their z stays at road z; swapped-in assets are
+        base-origin and have their base pinned to road z. Recording which one applies is what
+        keeps the object from floating or sinking on rebuild.</li>
+      </ul>
+    </section>
+
+    <!-- ---------------------------- PART II --------------------------- -->
+    <section id="pl-leaves">
+      <div class="parthead">
+        <p class="pk">Part II</p>
+        <h2 class="serif">The nine leaves</h2>
+        <p><b>6 leaves have no nuPlan type</b> — 10 scenarios each, built from nothing:
+        C-10 · V-10 · V-11 · R-3 · R-4 · I-3. <b>3 leaves are too scarce to reach 10</b> —
+        the deficit is built and the real scenarios are kept: C-7 (1 mined → 9) ·
+        V-8 (1 mined → 9) · R-2 (5 mined → 5). C-9 Single-Vehicle is <b>not built here</b> —
+        this pipeline only inserts and moves actors, and C-9 is defined entirely by ground
+        material and HDRI, so it is mined like the other 19 leaves (§1).</p>
+      </div>
+      <p>Each entry gives <b>asset · placement · trajectory · reviewer checklist</b>. Placement and
+      trajectory are stated as authoring intent; §7 covers how that becomes baked arrays and how
+      eval applies them.</p>
+      <div class="plannote plain">
+        <span class="nk">Applies to every leaf — not repeated below</span>
+        <ul style="margin-top:0">
+          <li>the asset renders at all, at the right scale, upright, and sitting on the road</li>
+          <li>an actor with <code>valid = False</code> frames is parked off-screen, not deleted —
+          confirm that off-screen pose is not visible from another camera</li>
+          <li>the event falls inside the recipe's <code>assumed_ego_arrival_window_s</code>, so the
+          policy actually meets it (§6)</li>
+        </ul>
+      </div>
+      <div id="leafcards"></div>
+    </section>
+
+    <!-- ---------------------------- PART III -------------------------- -->
+    <section id="pl-build">
+      <div class="parthead">
+        <p class="pk">Part III</p>
+        <h2 class="serif">Building it</h2>
+        <p>The file format everything else is defined against, where the code lives, how review
+        is made cheap, and the order that keeps each stage testable.</p>
+      </div>
+    </section>
+
+    <section id="pl-recipe">
+      <h3>Recipe shape</h3>
+      <pre class="planpre">recipe_id: C-10/wrong_way_approach/navhard_00c1e4eb_h1/003
+leaf: C-10
+scenario: wrong_way_approach
+nuplan_type: null                                    <span class="cm"># this leaf has no type</span>
+provenance: constructed
+frozen_at: 2026-08-07
+
+host: {scene: 00c1e4eb4a045f20h1, world_version: car2sim_6cam_static@&lt;hash&gt;,
+       artifact: output_5cam/.../artifacts/last.usdz, temporal_extent_s: 5.2}
+frame: ego_frame0                                    <span class="cm"># never absolute UTM</span>
+ego:   {replay_frames: 8, cam_height: waymo, z_to_ground: 0.0}
+route_polyline: [[0.00, 0.00], [2.01, 0.03], ...]    <span class="cm"># arc-0 anchor, frozen inline</span>
+assumed_ego_arrival_window_s: [2.4, 4.1]             <span class="cm"># Part I §6</span>
+
+frames: {T: 44, dt_s: 0.1, after_frame: 8,           <span class="cm"># after_frame = arc-0 anchor</span>
+         timestamps_us: [...]}                       <span class="cm"># host mismatch → hard error</span>
+
+actors:
+  oncoming_vehicle:
+    asset: {registry_key: car_sedan_03, uid: 946ec7c0…, sha256: 9f2c…,
+            dims: [3.96, 1.65, 1.45]}
+    leaf_variety_slot: car#3/5                       <span class="cm"># spans the leaf's 5 meshes</span>
+    track: {type: VEHICLE, semantic_class: WODPerceptionBoxDetectionLabel.TYPE_VEHICLE}
+    op: relocate
+    source_track_id: wdPo1LwisGiYoUxDltocrg
+    keep_appearance: true                            <span class="cm"># → z stays at road z (§7)</span>
+
+    <span class="cm"># authored intent — documentation only, never re-executed</span>
+    authored:
+      template: dynamic
+      reference: ego_route                           <span class="cm"># ego_route | lane:&lt;id&gt; | polyline</span>
+      arc: 52.0
+      speed: -8.0                                    <span class="cm"># negative → closes on the ego</span>
+
+    <span class="cm"># authority — baked per-frame state, inlined (§7)</span>
+    <b>state:</b>
+      position: [[52.00, 0.11, -1.72], [51.20, 0.10, -1.72], ...]   <span class="cm"># (T, 3)</span>
+      heading:  [3.1379, 3.1381, ...]                               <span class="cm"># (T,)</span>
+      velocity: [[-8.00, -0.01], [-8.00, -0.01], ...]               <span class="cm"># (T, 2)</span>
+      valid:    [true, true, ...]                                   <span class="cm"># (T,)</span>
+
+  background_traffic: {op: keep}                     <span class="cm"># host's own logged tracks</span>
+
+pair: {e0_removes: [oncoming_vehicle], pair_id: c10_003}
+review: {status: pending, checklist: leaves/C-10.md}</pre>
+      <p><code>e0_removes</code> names the actor whose presence defines the leaf — removing
+      background would isolate nothing.</p>
+    </section>
+
+    <section id="pl-modules">
+      <h3>Module layout</h3>
+      <pre class="planpre">nexussim/navsafe/editing/
+├── assets/      registry.py · acquire.py · compose.py
+├── placement/   probe.py · solve.py        <span class="cm"># authored intent → absolute pose</span>
+├── trajectory/  templates.py · bake.py     <span class="cm"># the five templates (§7)</span>
+├── recipe/      schema.py · freeze.py · replay.py
+├── review/      cards.py                   <span class="cm"># renders what the human checks</span>
+└── cli.py
+
+nexussim/scenario/edits.py
+└── apply_baked_track()                     <span class="cm"># the one new edit tool (§7)</span></pre>
+      <p><code>replay.py</code> is the surface a benchmark user touches: recipe in,
+      <code>scenario_edits</code> out, fed to the existing eval path, with checksums verified
+      first. The baked state arrays enter through <code>apply_baked_track</code>, so the env,
+      traffic manager, renderer and scoring are unchanged.</p>
+    </section>
+
+    <section id="pl-review">
+      <h3>Review cards</h3>
+      <p>Since verification is human, the pipeline's job is to make review fast: per candidate,
+      render <code>cam_f0.gif</code> and <code>topdown.gif</code>, print the placement numbers a
+      reviewer needs to sanity-check (lane width, closing time, spawn arc), show the
+      <code>e⁰</code>/<code>e⁺</code> pair side by side, and attach that leaf's checklist from
+      Part II. The reviewer records a verdict plus a reason code; reason codes aggregate into
+      template fixes rather than per-episode patches.</p>
+      <p>At 83 scenarios and a few seconds of video each, one review pass is a few hours and
+      parallelises across people.</p>
+    </section>
+
+    <section id="pl-order">
+      <h3>Order of work</h3>
+      <div class="planscroll">
+        <table class="plantab">
+          <thead><tr><th>#</th><th>step</th><th>why it comes here</th></tr></thead>
+          <tbody>
+            <tr>
+              <td>1</td>
+              <td><b>Recipe schema + <code>apply_baked_track</code> + freeze + replay</b></td>
+              <td>Round-trip: freeze, replay twice, assert identical traces; corrupt a state array,
+              assert it fails loudly; feed a recipe whose <code>T</code> disagrees with the host,
+              assert it refuses. Every later stage is defined against this file format.</td>
+            </tr>
+            <tr>
+              <td>2</td>
+              <td><b>Placement solver and the trajectory templates</b></td>
+              <td>Signed speed and the ego route as a reference are enough for the first leaf;
+              <code>static</code> and <code>dart_out</code> follow closely behind (§7).</td>
+            </tr>
+            <tr>
+              <td>3</td>
+              <td><b>C-10 Wrong-Way end to end</b></td>
+              <td>The cheapest leaf: <code>relocate</code> only, no new asset, and the ego route as
+              its reference polyline. Produces the first review card and proves the whole path.</td>
+            </tr>
+            <tr>
+              <td>3b</td>
+              <td><b>Lane-centreline and inline references</b></td>
+              <td>Ahead of the remaining leaves rather than deferred to V-10: it is what puts R-2's
+              cyclist on the side road, R-3's embodiments on the kerb, and V-10's stream on a lane
+              that converges — and it is what makes a turning actor fall out of the reference's own
+              curvature.</td>
+            </tr>
+            <tr>
+              <td>4</td>
+              <td><b>Review cards</b></td>
+              <td>Once there is something to review.</td>
+            </tr>
+            <tr>
+              <td>5</td>
+              <td><b>Then, in ascending asset cost</b></td>
+              <td>C-7 (shared cars + constrictors) · V-11 (3 signs) · R-4 (8 animals) ·
+              I-3 (many assets, six sub-scenarios) · R-3 (5 composed embodiments) ·
+              V-8 (authored sign) · R-2 (composed bike + rider).</td>
+            </tr>
+            <tr>
+              <td>6</td>
+              <td><b>Last, the one that needs a decision first</b></td>
+              <td>V-10 — does any host have on-ramp geometry? C-9 is not on this list: it has
+              no actors, only ground material and HDRI, which this pipeline does not touch —
+              it is mined, not built.</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <div class="planfoot">
+      Internal working document — not part of the public release. Kept in sync with
+      <code>NavSafe/Scene Editing Pipeline — Design Plan.md</code>.
+    </div>
+
+  </article>
+
+  <!-- placeholder: no design document exists for this one yet. It is listed so
+       the second plan has a home, and deliberately claims nothing. -->
+  <article class="plandoc" id="doc-eval" hidden>
+    <header>
+      <p class="eyebrow">Internal · not yet written</p>
+      <h1 class="doctitle serif">Evaluation Pipeline — Design Plan</h1>
+      <p class="docsub">How a frozen recipe becomes a score: replay, tracing, scoring and the
+      coverage tables that the scene-editing pipeline deliberately leaves out of scope.</p>
+    </header>
+
+    <div class="planempty">
+      <p class="ek">Nothing here yet</p>
+      <p>This slot is reserved. When the evaluation-pipeline plan is drafted it drops in here
+      the same way the scene-editing plan does — Obsidian is the source of record, this page
+      is the read view.</p>
+    </div>
+
+    <div class="planfoot">
+      Internal working document — not part of the public release.
+    </div>
+  </article>
+
+  </div>
+</div>
+</main>
+
+<script>
+// ---- theme toggle. The stylesheet already follows prefers-color-scheme; the
+// button only writes an explicit override, so an untouched visit keeps tracking
+// the OS setting.
+const themebtn = document.getElementById("themebtn");
+const savedTheme = localStorage.getItem("navsafe-theme");
+if (savedTheme) document.documentElement.dataset.theme = savedTheme;
+themebtn.addEventListener("click", e => {
+  e.stopPropagation();
+  const dark = getComputedStyle(document.documentElement)
+    .getPropertyValue("color-scheme").trim() === "dark";
+  const next = dark ? "light" : "dark";
+  document.documentElement.dataset.theme = next;
+  localStorage.setItem("navsafe-theme", next);
+});
+
+
+// The nine actor-built leaves mining cannot serve (C-9 excluded: no actors,
+// out of scope for this pipeline). Fields are fixed by design: asset,
+// placement, trajectory, reviewer checklist — so no entry can quietly omit one.
+// `table` replaces placement/trajectory where a leaf has sub-scenarios (I-3).
+const PLAN_LEAVES = [
+  {
+    id: "C-10", name: "Wrong-Way (crash)", count: "10 scenarios",
+    lede: "Zero marginal asset cost: the intervention is the behaviour, not the object.",
+    asset: "<code>car</code> ×5 from the shared pool (sedan, SUV, hatchback, van, pickup). Prefer <code>relocate</code> of a host vehicle to keep its baked appearance.",
+    placement: "In the <b>ego's own lane</b>, ahead, heading reversed (route tangent + 180°). Spawn arc 40–70 m past the hand-off so the closing speed still leaves a reaction window.",
+    trajectory: "<code>dynamic</code> on the ego route at a <b>negative</b> 6–10 m/s, so the actor closes head-on along the ego lane's centreline and its heading follows from the velocity vector. It never swerves.",
+    checks: [
+      "the vehicle is in the ego's <b>own</b> lane, not the adjacent opposing lane — this is the single most common way to build this leaf wrong",
+      "it faces the ego (no sideways or reversed mesh)",
+      "closing geometry leaves ≥ 1.5 s to initiate evasion",
+      "a <b>legal</b> evasion exists — shoulder or free adjacent lane — so the episode is not unavoidable at spawn, and evading into the opposing lane is not the only out",
+      "the spawn arc lies inside the reference's own length, so the actor starts where the recipe says rather than at the end of the route",
+    ],
+  },
+  {
+    id: "V-10", name: "Unsafe Merge / Entry", count: "10 scenarios",
+    lede: "A timed gap in a mainline stream that will not open for a hesitant ego.",
+    asset: "<code>car</code> ×8 mainline stream, shared pool.",
+    placement: "The ego starts on an acceleration lane or ramp; the stream occupies the adjacent mainline lane. Gap structure is the parameter: one usable gap arriving near the ego's merge point, with the rest of the platoon closed.",
+    trajectory: "<code>group</code> on the <b>mainline lane's own centreline</b> — a 12–18 m/s platoon with a declared gap pattern and one gap marked usable, so it converges with the ramp the way the lane does. Non-reactive, so the stream will not open for a hesitant ego.",
+    checks: [
+      "the host genuinely has an acceleration lane that <b>ends</b>, and the ego's route is on it",
+      "exactly one gap is usable, and it is still open when the ego reaches it — the timing risk of §6 is at its worst here",
+      "the platoon spacing looks like traffic, not like a queue of clones",
+      "merging is achievable without leaving the drivable area",
+    ],
+    note: { kind: "warn", title: "Blocker",
+      html: "An on-ramp or weaving section must <b>exist</b> in a reconstructed route. No asset can author road topology. Settle host availability before any V-10 work — it is the most-tested ability in the CARLA-based reference benchmarks, so conceding it is expensive. If no host qualifies, declare the leaf unpopulated with evidence attached." },
+  },
+  {
+    id: "V-11", name: "Driving Wrong Way", count: "10 scenarios",
+    lede: "A prohibition test: the ego must <em>not</em> do something the road physically allows.",
+    asset: "<code>one_way</code> ×3 (do-not-enter, directional, wrong-way) — the <code>sign</code> registry's one-way allotment.",
+    placement: "At the entrance of a one-way segment or divided-highway ramp on the ego's route, at correct roadside mounting height, <b>face turned toward the ego's approach</b>.",
+    trajectory: "<code>static</code> — a fixed pose for the whole episode.",
+    checks: [
+      "the sign is legible from the ego camera at realistic approach distance",
+      "the segment it governs really is one-way, and the ego's route offers the illegal entry as a plausible option — otherwise the test is vacuous",
+      "the sign face points at the ego, not away or edge-on",
+      "the sign sits where a real one would (roadside, not mid-lane, not floating)",
+    ],
+  },
+  {
+    id: "R-3", name: "Micromobility", count: "10 scenarios · 2 per embodiment",
+    lede: "Unfamiliar kinematics in shared space. Results are reported <b>per embodiment, never pooled</b>, so the 10 split evenly.",
+    asset: "<code>delivery_robot</code> ×5 · <code>quadruped</code> ×3 · <code>humanoid</code> ×3 · <code>wheelchair + user</code> ×5 <b>composed</b> · <code>scooter_rider</code> ×3.",
+    placement: "At a curb, crosswalk or shared-space edge, entering the ego's lane: delivery robot off a sidewalk at a driveway; wheelchair at a marked crossing; quadruped mid-block; scooter from a bike lane.",
+    trajectory: "<code>dart_out</code> at embodiment-appropriate speed: delivery robot 1.0–1.5 m/s · wheelchair 0.8–1.4 m/s · quadruped 1.5–3.0 m/s · humanoid 1.0–1.5 m/s · scooter 4–6 m/s. Non-negotiating. Where the embodiment turns rather than crossing straight — a wheelchair coming off the kerb — it runs <code>dynamic</code> on a kerb or sidewalk polyline, so the turn comes from the reference's own curvature.",
+    checks: [
+      "speed <b>and turn radius</b> are plausible for that embodiment — a wheelchair pivoting like a pedestrian is the characteristic authoring error",
+      "the actor is visible early enough that a competent policy could respond",
+      "contact would read as VRU severity, not vehicle severity",
+      "the composed <code>wheelchair + user</code> looks seated and correctly scaled",
+    ],
+    note: { kind: "warn", title: "Arithmetic conflict",
+      html: "The subgroup rule asks for ≥ 5 meshes per embodiment (25 meshes across five), but 10 scenarios can show at most 10. Either this leaf needs more than 10 scenarios, or per-embodiment reporting runs at n = 2 — which cannot support a subgroup claim. Decide which, and say so in the paper." },
+  },
+  {
+    id: "R-4", name: "Animal-Involved", count: "10 scenarios · ≥ 6 species",
+    lede: "An unfamiliar mover with no social model: it will not negotiate.",
+    asset: "<code>animal</code> ×8 across ≥ 6 species — dog ×2, deer ×2, plus cat, bird, raccoon, squirrel. The 10 scenarios span all six species.",
+    placement: "Entering the ego's lane from the roadside: dog and deer from a shoulder or vegetation line (with the vegetation as a partial occluder where the host has one); small animals already mid-lane.",
+    trajectory: "<code>dart_out</code>, straight-line crossing with no yield: deer 6–9 m/s · dog 3–5 m/s · cat / raccoon / squirrel 2–4 m/s · bird low crossing — see the worked example in §7. The animal waits at the verge for the pre-event frames, so no acceleration profile is needed. Small animals already mid-lane are <code>static</code> at <code>lateral ≈ 0</code>.",
+    checks: [
+      "speed and path match the species — nothing lane-follows or brakes",
+      "size is plausible against the vehicle beside it",
+      "the ego has a <b>swerve option that leaves the road</b>, so the classic secondary failure (swerving off-road to avoid an animal) is available to be measured",
+      "the animal is not spawned so close that contact is unavoidable",
+    ],
+  },
+  {
+    id: "I-3", name: "General Incident", count: "10 scenarios · 4 named + 2 controls",
+    lede: "Four named scenarios plus <b>two negative controls</b>, without which the leaf's directive-compliance term cannot be scored. Split: 2 each for the four, 1 each for the controls.",
+    asset: "<code>emergency_vehicle</code> ×3 (police car, ambulance, fire truck) · <code>responder</code> ×3 (officer, firefighter, emergency worker) · <code>debris</code> ×3 · plus a <code>bus</code> mesh for the stop-arm scenarios.",
+    table: `<div class="planscroll"><table class="plantab">
+      <thead><tr><th>sub-scenario</th><th>placement</th><th>trajectory</th></tr></thead>
+      <tbody>
+        <tr><td>emergency vehicle approaching</td><td>same lane behind the ego (negative <code>arc</code>), or opposing lane</td><td><code>dynamic</code> 15–20 m/s + <code>lateral_schedule</code> out and back — the one moving sub-scenario</td></tr>
+        <tr><td>in-lane crash scene</td><td>two vehicles at odd yaw blocking the ego's lane + <code>debris</code> scattered around them</td><td>static</td></tr>
+        <tr><td>officer directing against the signal</td><td><code>responder</code> standing in the ego's approach path, with the signal showing green</td><td>static, oriented toward the ego</td></tr>
+        <tr><td>school-bus stop-arm</td><td><code>bus</code> stopped in the ego's lane or the adjacent one, stop-arm out</td><td>static</td></tr>
+        <tr><td><b>NC-1</b> officer directing other traffic</td><td>same officer, oriented toward the <b>cross</b> approach</td><td>static</td></tr>
+        <tr><td><b>NC-2</b> divided-highway bus</td><td><code>bus</code> stopped across a median, no stop required</td><td>static</td></tr>
+      </tbody></table></div>`,
+    checks: [
+      "for the two directive pairs, is it <b>visually unambiguous</b> which traffic the officer is directing, and which bus requires a stop? The negative control is worthless if a reasonable human cannot tell the pair apart",
+      "the responder is standing on the ground at human scale, facing where intended",
+      "the crash scene blocks the lane enough to require a response but leaves a passable route",
+      "there is <b>no audio in the sim</b>, so every cue — siren, livery, stop-arm — has to read visually. Confirm it does.",
+    ],
+    note: { kind: "warn", title: "Open item",
+      html: "The <code>bus</code> mesh and a deployed stop-arm are not in this leaf's asset list. The stop-arm is either authored or approximated by a static arm; decide before building the two stop-arm scenarios." },
+  },
+  {
+    id: "C-7", name: "Head-On", count: "9 scenarios · 1 mined",
+    lede: "The dominant failure here is <b>mutual freeze, not collision</b>.",
+    asset: "<code>car</code> ×5 oncoming (shared pool) · <code>corridor_constrictor</code> ×3 (parked car, jersey barrier, cone cluster).",
+    placement: "Constrictors along one side of a two-way street, narrowing the usable width below two vehicle widths; the oncoming car approaches inside the narrowed corridor. A pullout or wide spot must exist <b>before</b> the meeting point.",
+    trajectory: "<code>dynamic</code> at a <b>negative</b> 3–6 m/s so the car closes inside the corridor, plus <code>static</code> constrictors. Because it is non-reactive it will not yield, which makes the correct behaviour unambiguous: the <b>ego</b> must yield into the pullout.",
+    checks: [
+      "usable width is genuinely below two vehicles — measure it, do not eyeball it",
+      "a reachable pullout exists before the meeting point, so the scenario is solvable",
+      "the oncoming car tracks the ego's corridor rather than a parallel lane",
+      "the constrictors sit where real obstructions would (kerbside, not mid-lane)",
+    ],
+  },
+  {
+    id: "V-8", name: "Illegal U-Turn / Turn", count: "9 scenarios · 1 mined",
+    lede: "A map-versus-perception conflict: the map permits the topology, the sign forbids it.",
+    asset: "<code>prohibitory_turn_sign</code> ×2 (No-U-Turn, No-Left-Turn) — <b>authored</b>, by retexturing a generic sign face. No such mesh exists in the asset library, and without the sign the maneuver is legal and the leaf untestable.",
+    placement: "At an intersection where the map genuinely permits the U-turn or left, mounted at legible height, face toward the ego's approach.",
+    trajectory: "<code>static</code> — a fixed pose for the whole episode.",
+    checks: [
+      "the sign is legible at approach distance and unmistakably a prohibition",
+      "the map really does permit the maneuver — with no permission there is no conflict and nothing is being tested",
+      "the ego's route or goal makes the prohibited maneuver <b>attractive</b>, so declining it is a decision rather than an accident",
+      "the sign is the only cue against the maneuver — no cone, no barrier doing the work instead",
+    ],
+  },
+  {
+    id: "R-2", name: "Bicycle-Involved", count: "5 scenarios · 5 mined",
+    lede: "The mined five are the follow-and-pass case; the built five are the crossing and group cases that nuPlan effectively does not contain.",
+    asset: "<code>bicycle + rider</code> ×5 <b>composed</b> — the library has 2 cyclist-person meshes against 118 bicycles, the tightest bottleneck in the tree, so composition is mandatory and reported as composed.",
+    placement: "Crossing case: cyclist entering the ego's path from a cross street or driveway. Group case: 3–4 cyclists in a bike lane or sharing the lane ahead of the ego.",
+    trajectory: "Crossing case: <code>dynamic</code> at 4–6 m/s on the <b>cross street's own centreline</b>, so the approach follows the side road rather than cutting across the ego's path. Group case: <code>group</code> at 4–5 m/s travelling ahead of the ego at a declared spacing.",
+    checks: [
+      "the rider is composed onto the bike plausibly — seated, correctly scaled, feet at the pedals. This is the leaf's characteristic failure",
+      "the path is plausible for a bicycle (no lean or wobble is acceptable; an implausible turn radius is not)",
+      "the pass geometry leaves the ego a <b>legal lateral clearance</b> option at the standard NavSafe adopts (1.5 m or 0.91 m — state which)",
+      "the group reads as a group sharing one gap, not as clones in a line",
+    ],
+    note: { kind: "plain", title: "Note",
+      html: "<code>motorcycle + rider</code> assets belong to this leaf's episodes, but motorcyclists are not a VRU subgroup under the definition NavSafe adopts, so motorcycle contacts score at vehicle severity. The built five are bicycles." },
+  },
+];
+
+// leaf id → ability colour, so a plan entry is tinted the same as its node in
+// the public taxonomy map. Mirrors the `ab` field of the LEAVES table there.
+const LEAF_ABILITY = {
+  "C-7": "--a3", "C-10": "--a3", "V-8": "--a4", "V-10": "--a3", "V-11": "--a4",
+  "R-2": "--a5", "R-3": "--a5", "R-4": "--a5", "I-3": "--a6",
+};
+const abVarOfLeaf = id => LEAF_ABILITY[id] || "--ghost";
+const planRow = (k, v) => `<div class="leafrow"><div class="lk">${k}</div><div class="lv">${v}</div></div>`;
+
+const leafAnchor = id => "pl-leaf-" + id.toLowerCase();
+
+document.getElementById("leafcards").innerHTML = PLAN_LEAVES.map(L => `
+  <div class="leafcard" id="${leafAnchor(L.id)}" style="--ac: var(${abVarOfLeaf(L.id)})">
+    <div class="lhead">
+      <span class="lid">${L.id}</span>
+      <span class="lname">${L.name}</span>
+      <span class="lcount">${L.count}</span>
+    </div>
+    <p class="llede">${L.lede}</p>
+    ${planRow("Asset", L.asset)}
+    ${L.table
+      ? planRow("Placement<br>&amp; motion", L.table)
+      : planRow("Placement", L.placement) + planRow("Trajectory", L.trajectory)}
+    ${planRow("Reviewer", `<ul class="checks">${L.checks.map(c => `<li>${c}</li>`).join("")}</ul>`)}
+    ${L.note ? `<div class="plannote ${L.note.kind}"><span class="nk">${L.note.title}</span>${L.note.html}</div>` : ""}
+  </div>`).join("");
+
+// ---- internal documents. The top row picks one; the left column is that
+// document's own section index, so the two never say the same thing twice.
+const PLAN_DOCS = {
+  scene: {
+    el: "doc-scene",
+    toc: [
+      ["part", "#pl-design", "Part I · Design"],
+      ["",     "#pl-1",      "1 · Purpose"],
+      ["",     "#pl-2",      "2 · What it does"],
+      ["",     "#pl-3",      "3 · What it doesn't judge"],
+      ["",     "#pl-4",      "4 · What a recipe pins"],
+      ["",     "#pl-5",      "5 · The four edit ops"],
+      ["",     "#pl-6",      "6 · Event timing"],
+      ["",     "#pl-7",      "7 · Trajectory"],
+      ["part", "#pl-leaves", "Part II · Nine leaves"],
+      // the ten leaf cards, in build order — generated from the same array that
+      // renders them, so the index cannot drift from the document.
+      ...PLAN_LEAVES.map(L => ["tocleaf", "#" + leafAnchor(L.id), `${L.id} · ${L.name}`]),
+      ["part", "#pl-build",  "Part III · Building it"],
+      ["",     "#pl-recipe", "Recipe shape"],
+      ["",     "#pl-modules","Module layout"],
+      ["",     "#pl-review", "Review cards"],
+      ["",     "#pl-order",  "Order of work"],
+    ],
+  },
+  eval: { el: "doc-eval", toc: [] },
+};
+
+const tocnav = document.getElementById("tocnav");
+let tocSpy = null;
+
+function setDoc(name, { scroll = true } = {}) {
+  const doc = PLAN_DOCS[name] || PLAN_DOCS.scene;
+  for (const [k, d] of Object.entries(PLAN_DOCS))
+    document.getElementById(d.el).hidden = k !== name;
+  for (const b of document.querySelectorAll("#links-plan button"))
+    b.setAttribute("aria-current", String(b.dataset.doc === name));
+
+  tocnav.innerHTML = doc.toc.length
+    ? doc.toc.map(([cls, href, label]) => `<a class="${cls}" href="${href}">${label}</a>`).join("")
+    : `<p class="tocempty">No sections yet</p>`;
+
+  // one observer per document: the previous one watched sections that are now
+  // detached from view and would keep firing.
+  if (tocSpy) tocSpy.disconnect();
+  const tocLinks = [...tocnav.querySelectorAll("a")];
+  tocSpy = new IntersectionObserver(entries => {
+    for (const e of entries) if (e.isIntersecting) {
+      const id = "#" + e.target.id;
+      tocLinks.forEach(a => a.classList.toggle("active", a.getAttribute("href") === id));
+    }
+  }, { rootMargin: "-60px 0px -72% 0px", threshold: 0 });
+  for (const a of tocLinks) {
+    const sec = document.querySelector(a.getAttribute("href"));
+    if (sec) tocSpy.observe(sec);
+  }
+
+  localStorage.setItem("navsafe-plan", name);
+  if (scroll) scrollTo({ top: 0, behavior: "auto" });
+}
+
+document.getElementById("links-plan").addEventListener("click", e => {
+  const b = e.target.closest("button[data-doc]");
+  if (b) setDoc(b.dataset.doc);
+});
+
+// #eval opens the evaluation document; any other hash is a section of the
+// scene-editing plan. A bare visit restores whichever was last open.
+const hash = location.hash;
+setDoc(hash === "#eval" ? "eval" : hash ? "scene"
+       : localStorage.getItem("navsafe-plan") || "scene", { scroll: false });
+if (hash && hash !== "#eval") document.querySelector(hash)?.scrollIntoView();
+
+
+</script>
+</body>
+</html>
