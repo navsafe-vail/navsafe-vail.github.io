@@ -1,0 +1,335 @@
+/* ---------------------------------------------------------------------
+   Palette. The six ability hues are the page's only categorical scale:
+   hue-locked across light and dark, and re-stepped so that every adjacent
+   pair clears the CVD separation and normal-vision floors (the previous
+   set collapsed A2/A3 under protanopia at deltaE 4.2). Identity is never
+   carried by colour alone — every mark keeps its A1..A6 label.
+   ------------------------------------------------------------------ */
+:root {
+  --bg: #F6F5F2; --panel: #FFFFFF; --panel-2: #FBFAF8;
+  --ink: #23221F; --ink-dim: #6E6A61; --ink-faint: #918D84;
+  --line: #DDD9D1; --line-soft: #EAE7E0; --ghost: #A8A49B;
+  --a1: #497DC9; --a2: #52A557; --a3: #986A1E;
+  --a4: #906EB7; --a5: #A7405E; --a6: #20A39D;
+  --wire: #CFCBC2;
+  --shadow: 0 1px 2px rgba(35,34,31,.05), 0 8px 24px -16px rgba(35,34,31,.28);
+  --typew: 480px;
+  --maxw: 1080px;
+  color-scheme: light;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #191A1C; --panel: #202225; --panel-2: #1D1F21;
+    --ink: #E7E5E0; --ink-dim: #97948D; --ink-faint: #7B7871;
+    --line: #33353A; --line-soft: #2A2C30; --ghost: #5C5E63;
+    --a1: #5087DA; --a2: #4DAC54; --a3: #A56F05;
+    --a4: #AB76E2; --a5: #C05070; --a6: #07AAA3;
+    --wire: #3A3C41;
+    --shadow: 0 1px 2px rgba(0,0,0,.3), 0 8px 24px -16px rgba(0,0,0,.7);
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #191A1C; --panel: #202225; --panel-2: #1D1F21;
+  --ink: #E7E5E0; --ink-dim: #97948D; --ink-faint: #7B7871;
+  --line: #33353A; --line-soft: #2A2C30; --ghost: #5C5E63;
+  --a1: #5087DA; --a2: #4DAC54; --a3: #A56F05;
+  --a4: #AB76E2; --a5: #C05070; --a6: #07AAA3;
+  --wire: #3A3C41;
+  --shadow: 0 1px 2px rgba(0,0,0,.3), 0 8px 24px -16px rgba(0,0,0,.7);
+  color-scheme: dark;
+}
+
+
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+body {
+  margin: 0; background: var(--bg); color: var(--ink);
+  font: 15px/1.6 ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+a { color: inherit; }
+.serif { font-family: ui-serif, Georgia, "Iowan Old Style", "Times New Roman", serif; }
+.wrap { max-width: var(--maxw); margin: 0 auto; padding: 0 28px; }
+.wrap-wide { max-width: 1360px; margin: 0 auto; padding: 0 28px; }
+section { scroll-margin-top: 68px; }
+
+
+/* ---------- top nav ---------- */
+nav#top {
+  position: sticky; top: 0; z-index: 40;
+  background: color-mix(in srgb, var(--bg) 86%, transparent);
+  backdrop-filter: saturate(180%) blur(10px);
+  border-bottom: 1px solid var(--line-soft);
+}
+nav#top .inner {
+  max-width: 1360px; margin: 0 auto; padding: 0 28px; height: 52px;
+  display: flex; align-items: center; gap: 22px;
+}
+.brand {
+  font: 700 13px/1 ui-sans-serif, system-ui, sans-serif; letter-spacing: .16em;
+  text-transform: uppercase; text-decoration: none; white-space: nowrap;
+}
+.brand em { font-style: normal; color: var(--a1); }
+/* min-width:0 so the flex item may shrink below its content width — without it
+   the link row pushes the document wider than the viewport on narrow screens
+   instead of scrolling inside itself. */
+nav#top .links {
+  display: flex; gap: 18px; margin-left: auto; overflow-x: auto; min-width: 0;
+  scrollbar-width: none;
+}
+nav#top .links::-webkit-scrollbar { display: none; }
+nav#top .links a {
+  font-size: 12.5px; color: var(--ink-dim); text-decoration: none; white-space: nowrap;
+  padding: 4px 0; border-bottom: 1.5px solid transparent; transition: color .12s, border-color .12s;
+}
+nav#top .links a:hover { color: var(--ink); }
+nav#top .links a.active { color: var(--ink); border-bottom-color: var(--a1); }
+#themebtn {
+  appearance: none; background: none; border: 1px solid var(--line); border-radius: 6px;
+  color: var(--ink-dim); cursor: pointer; width: 30px; height: 28px; flex: none;
+  display: grid; place-items: center; margin-left: 4px;
+}
+#themebtn:hover { color: var(--ink); border-color: var(--ghost); }
+#themebtn svg { width: 15px; height: 15px; }
+
+
+.eyebrow {
+  font-size: 11px; font-weight: 700; letter-spacing: .16em; text-transform: uppercase;
+  color: var(--ink-faint); margin: 0 0 10px;
+}
+
+/* ---------------------------------------------------------------------
+   Internal plan page. Same palette and furniture as the public page, but
+   laid out as a document: one measure of text, a sticky section index, and
+   no decoration that isn't carrying information.
+   ------------------------------------------------------------------ */
+[hidden] { display: none !important; }
+
+.planwrap {
+  max-width: 1140px; margin: 0 auto; padding: 0 28px;
+  display: grid; grid-template-columns: 208px minmax(0, 1fr); gap: 56px; align-items: start;
+}
+/* the index now lists every leaf, so it can outgrow a short viewport —
+   it scrolls inside itself rather than pushing the sticky column past the fold. */
+.plantoc {
+  position: sticky; top: 76px; padding: 46px 0 0;
+  max-height: calc(100vh - 96px); overflow-y: auto; scrollbar-width: thin;
+}
+.plantoc .tt {
+  font-size: 10.5px; font-weight: 700; letter-spacing: .14em; text-transform: uppercase;
+  color: var(--ink-faint); margin: 0 0 9px;
+}
+.plantoc a {
+  display: block; font-size: 12.5px; color: var(--ink-dim); text-decoration: none;
+  padding: 3.5px 0 3.5px 11px; border-left: 2px solid var(--line-soft);
+  transition: color .12s, border-color .12s;
+}
+.plantoc a:hover { color: var(--ink); }
+.plantoc a.active { color: var(--ink); border-left-color: var(--a1); }
+.plantoc a.part {
+  margin-top: 13px; font-size: 10.5px; font-weight: 700; letter-spacing: .12em;
+  text-transform: uppercase; color: var(--ink-faint); border-left-color: transparent;
+}
+.plantoc a.part:first-child { margin-top: 0; }
+/* not .leaf — that class already belongs to the taxonomy map's nodes */
+.plantoc a.tocleaf { font-size: 11.5px; padding-left: 20px; }
+@media (max-width: 940px) { .planwrap { grid-template-columns: 1fr; gap: 0; } .plantoc { display: none; } }
+
+.plandoc { padding: 46px 0 0; min-width: 0; }
+.plandoc .doctitle {
+  font-size: clamp(26px, 3.4vw, 36px); font-weight: 600; letter-spacing: -0.02em;
+  line-height: 1.15; margin: 12px 0 0;
+}
+.plandoc .docsub { color: var(--ink-dim); max-width: 72ch; margin: 12px 0 0; font-size: 14.5px; }
+.plandoc section { margin: 0; padding: 0; scroll-margin-top: 68px; }
+.plandoc .parthead {
+  margin: 66px 0 0; padding: 0 0 10px; border-bottom: 1px solid var(--line);
+}
+.plandoc .parthead .pk {
+  font: 700 10.5px/1 ui-monospace, Menlo, monospace; letter-spacing: .16em;
+  text-transform: uppercase; color: var(--ink-faint);
+}
+.plandoc .parthead h2 {
+  margin: 9px 0 0; font-size: 22px; font-weight: 600; letter-spacing: -0.015em;
+}
+.plandoc .parthead p { margin: 8px 0 0; color: var(--ink-dim); font-size: 13.5px; max-width: 74ch; }
+
+/* inline, not flex: the heading text may itself contain <em>/<code>, and flex
+   would blow each of those out into its own item with a gap around it. */
+.plandoc h3 { margin: 40px 0 0; font-size: 16.5px; font-weight: 600; letter-spacing: -0.01em; }
+.plandoc h3 .no {
+  font: 700 11.5px/1 ui-monospace, Menlo, monospace; color: var(--ink-faint);
+  margin-right: 10px;
+}
+.plandoc h4 {
+  margin: 26px 0 0; font-size: 13px; font-weight: 700; letter-spacing: .07em;
+  text-transform: uppercase; color: var(--ink-dim);
+}
+.plandoc p { margin: 12px 0 0; max-width: 74ch; font-size: 14.5px; line-height: 1.7; }
+.plandoc ul { margin: 12px 0 0; padding-left: 18px; max-width: 74ch; }
+.plandoc li { margin: 6px 0 0; font-size: 14.5px; line-height: 1.65; }
+.plandoc code {
+  font: 12.5px/1.4 ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+  background: color-mix(in srgb, var(--ink) 6%, transparent);
+  border-radius: 3px; padding: 1px 4px;
+}
+.plandoc b { font-weight: 600; }
+
+.planpre {
+  margin: 16px 0 0; padding: 14px 16px; background: var(--panel-2);
+  border: 1px solid var(--line-soft); border-radius: 8px; overflow-x: auto;
+  font: 12px/1.65 ui-monospace, "SF Mono", Menlo, Consolas, monospace; color: var(--ink-dim);
+}
+.planpre b { color: var(--ink); font-weight: 600; }
+.planpre .cm { color: var(--ink-faint); }
+
+.planclaim {
+  margin: 18px 0 0; padding: 12px 0 12px 16px; border-left: 3px solid var(--a1);
+  font-size: 14.5px; max-width: 74ch;
+}
+
+.plannote {
+  margin: 18px 0 0; padding: 14px 16px; border: 1px solid var(--line-soft);
+  border-left: 3px solid var(--ac, var(--a3)); border-radius: 8px; background: var(--panel);
+  font-size: 13.5px; line-height: 1.65; max-width: 76ch;
+}
+.plannote .nk {
+  display: block; font: 700 10px/1 ui-monospace, Menlo, monospace; letter-spacing: .12em;
+  text-transform: uppercase; color: var(--ac, var(--a3)); margin: 0 0 7px;
+}
+.plannote.warn { --ac: var(--a5); }
+.plannote.plain { --ac: var(--ghost); }
+
+table.plantab {
+  width: 100%; border-collapse: collapse; margin: 16px 0 0; font-size: 13px;
+  min-width: 460px;
+}
+table.plantab th, table.plantab td {
+  padding: 8px 12px 8px 0; text-align: left; vertical-align: top;
+  border-bottom: 1px solid var(--line-soft);
+}
+table.plantab thead th {
+  font-size: 10px; letter-spacing: .1em; text-transform: uppercase;
+  color: var(--ink-faint); font-weight: 700;
+}
+table.plantab td:first-child { white-space: nowrap; }
+.planscroll { overflow-x: auto; }
+
+/* the nine leaves */
+.leafcard {
+  margin: 20px 0 0; scroll-margin-top: 68px; background: var(--panel); border: 1px solid var(--line-soft);
+  border-left: 3px solid var(--ac); border-radius: 10px; padding: 16px 20px 18px;
+  box-shadow: var(--shadow);
+}
+.leafcard .lhead { display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap; }
+.leafcard .lid {
+  font: 700 12px/1 ui-monospace, Menlo, monospace; color: var(--ac); letter-spacing: .06em;
+}
+.leafcard .lname { font-size: 16px; font-weight: 600; letter-spacing: -0.01em; }
+.leafcard .lcount {
+  margin-left: auto; font: 11px/1 ui-monospace, Menlo, monospace; color: var(--ink-dim);
+  border: 1px solid var(--line); border-radius: 999px; padding: 4px 9px; white-space: nowrap;
+}
+.leafcard .llede { margin: 9px 0 0; font-size: 13.5px; color: var(--ink-dim); max-width: 74ch; }
+.leafrow {
+  display: grid; grid-template-columns: 88px minmax(0, 1fr); gap: 16px;
+  padding: 11px 0; border-top: 1px solid var(--line-soft); margin-top: 12px;
+}
+.leafrow + .leafrow { margin-top: 0; }
+.leafrow .lk {
+  font: 700 9.5px/1.5 ui-monospace, Menlo, monospace; letter-spacing: .12em;
+  text-transform: uppercase; color: var(--ink-faint); padding-top: 3px;
+}
+.leafrow .lv { font-size: 13.5px; line-height: 1.62; }
+.leafrow .lv p { margin: 0; font-size: 13.5px; max-width: none; }
+.leafrow ul.checks { margin: 0; padding: 0; list-style: none; max-width: none; }
+.leafrow ul.checks li {
+  margin: 0 0 6px; padding-left: 19px; position: relative; font-size: 13.5px; line-height: 1.6;
+}
+.leafrow ul.checks li:last-child { margin-bottom: 0; }
+.leafrow ul.checks li::before {
+  content: ""; position: absolute; left: 0; top: 6px; width: 9px; height: 9px;
+  border: 1.4px solid var(--ghost); border-radius: 2px;
+}
+.leafcard .plannote { margin-top: 14px; }
+.leafcard table.plantab { min-width: 0; }
+@media (max-width: 620px) { .leafrow { grid-template-columns: 1fr; gap: 4px; } }
+
+.plandocs { min-width: 0; }
+.plantoc .tocempty { font-size: 12.5px; color: var(--ink-faint); padding: 3.5px 0 0 11px; }
+
+.planempty {
+  margin: 30px 0 0; padding: 26px 24px; border: 1px dashed var(--line);
+  border-radius: 10px; background: var(--panel-2); max-width: 74ch;
+}
+.planempty .ek {
+  margin: 0; font: 700 10.5px/1 ui-monospace, Menlo, monospace; letter-spacing: .14em;
+  text-transform: uppercase; color: var(--ink-faint);
+}
+.planempty p + p { margin: 10px 0 0; font-size: 14px; color: var(--ink-dim); }
+
+.planfoot {
+  margin: 76px 0 0; border-top: 1px solid var(--line-soft); padding: 24px 0 70px;
+  color: var(--ink-faint); font-size: 12px;
+}
+
+
+@media (prefers-reduced-motion: reduce) { * { transition: none !important; } html { scroll-behavior: auto; } }
+
+/* ---------- these pages' own nav furniture ---------- */
+.navtag {
+  font: 700 10px/1 ui-monospace, Menlo, monospace; letter-spacing: .14em;
+  text-transform: uppercase; color: var(--ink-dim); border: 1px solid var(--line);
+  border-radius: 999px; padding: 5px 9px; flex: none; text-decoration: none;
+}
+a.navtag:hover { color: var(--ink); border-color: var(--ghost); }
+.navspace { margin-left: auto; }
+.backlink {
+  font-size: 12.5px; color: var(--ink-dim); text-decoration: none; white-space: nowrap;
+  flex: none; margin-left: 18px;
+}
+.backlink:hover { color: var(--ink); }
+@media (max-width: 700px) { .backlink, .navtag { display: none; } }
+
+/* ---------------------------------------------------------------------
+   The /internal landing page: nothing but the list of plans that exist.
+   Each row is a whole plan — title, one line of what it covers, and its
+   state — so the index never has to restate a document's contents.
+   ------------------------------------------------------------------ */
+.idxwrap { max-width: 760px; margin: 0 auto; padding: 0 28px; }
+.idxhead { padding: 64px 0 0; }
+.idxhead h1 {
+  font-size: clamp(28px, 3.6vw, 38px); font-weight: 600; letter-spacing: -0.02em;
+  line-height: 1.15; margin: 12px 0 0;
+}
+.idxhead p { margin: 14px 0 0; color: var(--ink-dim); font-size: 14.5px; max-width: 66ch; }
+
+.idxlist { margin: 38px 0 0; border-top: 1px solid var(--line-soft); }
+/* the row is the link, so the whole strip is the target rather than the title alone */
+a.idxrow {
+  display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: baseline;
+  gap: 8px 18px; padding: 22px 4px 22px 0; border-bottom: 1px solid var(--line-soft);
+  text-decoration: none; transition: background-color .12s;
+}
+a.idxrow:hover { background: var(--panel-2); }
+a.idxrow .rt {
+  grid-area: 1 / 1; font-size: 17px; font-weight: 600; letter-spacing: -0.01em;
+  color: var(--ink);
+}
+a.idxrow:hover .rt { color: var(--a1); }
+a.idxrow .rs {
+  grid-area: 1 / 2; justify-self: end;
+  font: 700 9.5px/1 ui-monospace, Menlo, monospace; letter-spacing: .12em;
+  text-transform: uppercase; color: var(--ink-faint); border: 1px solid var(--line);
+  border-radius: 999px; padding: 5px 9px; white-space: nowrap;
+}
+a.idxrow .rd {
+  grid-area: 2 / 1; margin: 7px 0 0; font-size: 13.5px; line-height: 1.6;
+  color: var(--ink-dim); max-width: 62ch;
+}
+a.idxrow .rs.live { color: var(--a2); border-color: color-mix(in srgb, var(--a2) 42%, transparent); }
+a.idxrow[aria-disabled="true"] { pointer-events: none; }
+a.idxrow[aria-disabled="true"] .rt { color: var(--ink-dim); }
+/* the list's last row already draws a rule, so the footer does not need its own */
+.idxwrap .planfoot { margin-top: 30px; border-top: 0; }
