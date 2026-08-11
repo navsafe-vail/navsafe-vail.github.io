@@ -27,7 +27,7 @@
     --bg: #F6F5F2; --panel: #FFFFFF; --panel-2: #FBFAF8;
     --ink: #23221F; --ink-dim: #6E6A61; --ink-faint: #918D84;
     --line: #DDD9D1; --line-soft: #EAE7E0; --ghost: #A8A49B;
-    --a1: #497DC9; --a2: #52A557; --a3: #986A1E;
+    --a1: #1F4076; --a2: #52A557; --a3: #986A1E;
     --a4: #906EB7; --a5: #A7405E; --a6: #20A39D;
     --wire: #CFCBC2;
     --shadow: 0 1px 2px rgba(35,34,31,.05), 0 8px 24px -16px rgba(35,34,31,.28);
@@ -40,7 +40,7 @@
       --bg: #191A1C; --panel: #202225; --panel-2: #1D1F21;
       --ink: #E7E5E0; --ink-dim: #97948D; --ink-faint: #7B7871;
       --line: #33353A; --line-soft: #2A2C30; --ghost: #5C5E63;
-      --a1: #5087DA; --a2: #4DAC54; --a3: #A56F05;
+      --a1: #316CCD; --a2: #4DAC54; --a3: #A56F05;
       --a4: #AB76E2; --a5: #C05070; --a6: #07AAA3;
       --wire: #3A3C41;
       --shadow: 0 1px 2px rgba(0,0,0,.3), 0 8px 24px -16px rgba(0,0,0,.7);
@@ -51,7 +51,7 @@
     --bg: #191A1C; --panel: #202225; --panel-2: #1D1F21;
     --ink: #E7E5E0; --ink-dim: #97948D; --ink-faint: #7B7871;
     --line: #33353A; --line-soft: #2A2C30; --ghost: #5C5E63;
-    --a1: #5087DA; --a2: #4DAC54; --a3: #A56F05;
+    --a1: #316CCD; --a2: #4DAC54; --a3: #A56F05;
     --a4: #AB76E2; --a5: #C05070; --a6: #07AAA3;
     --wire: #3A3C41;
     --shadow: 0 1px 2px rgba(0,0,0,.3), 0 8px 24px -16px rgba(0,0,0,.7);
@@ -83,10 +83,12 @@
     display: flex; align-items: center; gap: 22px;
   }
   .brand {
+    display: inline-flex; align-items: center; gap: 8px;
     font: 700 13px/1 ui-sans-serif, system-ui, sans-serif; letter-spacing: .16em;
     text-transform: uppercase; text-decoration: none; white-space: nowrap;
   }
   .brand em { font-style: normal; color: var(--a1); }
+  .brand img { width: 22px; height: 22px; display: block; flex: none; }
   /* min-width:0 so the flex item may shrink below its content width — without it
      the link row pushes the document wider than the viewport on narrow screens
      instead of scrolling inside itself. */
@@ -120,8 +122,10 @@
   .wordmark {
     margin: 26px 0 0; font-size: clamp(38px, 6vw, 62px); font-weight: 700;
     letter-spacing: -0.035em; line-height: 1;
+    display: flex; align-items: center; justify-content: center; gap: 16px;
   }
   .wordmark em { font-style: normal; color: var(--a1); }
+  .wordmark img { width: clamp(62px, 9.6vw, 100px); height: clamp(62px, 9.6vw, 100px); display: block; }
   h1.title {
     font-size: clamp(21px, 2.7vw, 29px); line-height: 1.24; letter-spacing: -0.015em;
     margin: 14px auto 0; max-width: 30ch; font-weight: 500; color: var(--ink);
@@ -515,7 +519,7 @@
 <body>
 
 <nav id="top"><div class="inner">
-  <a class="brand" href="#"><em>Nav</em>Safe</a>
+  <a class="brand" href="#"><img src="logo.png" alt=""><em>Nav</em>Safe</a>
   <div class="links">
     <a href="#overview">Overview</a>
     <a href="#taxonomy">Taxonomy map</a>
@@ -533,7 +537,7 @@
 <header class="hero">
   <div class="wrap">
     <span class="venue">Under review</span>
-    <p class="wordmark serif"><em>Nav</em>Safe</p>
+    <p class="wordmark serif"><img src="logo.png" alt="NavSafe logo"><span><em>Nav</em>Safe</span></p>
     <h1 class="title serif">Benchmarking Closed-Loop Driving Safety in Photorealistic Environments
       <span class="lede">A closed-loop benchmark whose scenario coverage is organized by a real-world
       traffic-safety taxonomy — 28 outcome leaves, 73 nuPlan scenario types, six safety capabilities,
