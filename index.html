@@ -3,9 +3,9 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>NavSafe — Benchmarking Closed-Loop Driving Safety in Photorealistic Environments</title>
-<meta name="description" content="NavSafe is a closed-loop autonomous-driving benchmark that combines photorealistic NuRec environments with a traffic-safety taxonomy: 28 outcome leaves, 73 nuPlan scenario types, six safety capabilities.">
-<meta property="og:title" content="NavSafe — Benchmarking Closed-Loop Driving Safety in Photorealistic Environments">
+<title>NavSafe-∞ — Benchmarking Closed-Loop Driving Safety in Photorealistic Environments</title>
+<meta name="description" content="NavSafe-∞ is a closed-loop autonomous-driving benchmark that combines photorealistic NuRec environments with a traffic-safety taxonomy: 28 outcome leaves, 73 nuPlan scenario types, six safety capabilities.">
+<meta property="og:title" content="NavSafe-∞ — Benchmarking Closed-Loop Driving Safety in Photorealistic Environments">
 <meta property="og:description" content="Closed-loop execution, photorealistic observations, and taxonomy-grounded safety-critical events in one benchmark.">
 <meta property="og:type" content="website">
 <!-- SVG for browsers that take it, .ico (16+32) as the fallback, and a
@@ -519,7 +519,7 @@
 <body>
 
 <nav id="top"><div class="inner">
-  <a class="brand" href="#"><img src="logo.png" alt=""><em>Nav</em>Safe</a>
+  <a class="brand" href="#"><img src="logo.png" alt=""><em>Nav</em>Safe-∞</a>
   <div class="links">
     <a href="#overview">Overview</a>
     <a href="#taxonomy">Taxonomy map</a>
@@ -537,7 +537,7 @@
 <header class="hero">
   <div class="wrap">
     <span class="venue">Under review</span>
-    <p class="wordmark serif"><img src="logo.png" alt="NavSafe logo"><span><em>Nav</em>Safe</span></p>
+    <p class="wordmark serif"><img src="logo.png" alt="NavSafe-∞ logo"><span><em>Nav</em>Safe-∞</span></p>
     <h1 class="title serif">Benchmarking Closed-Loop Driving Safety in Photorealistic Environments
       <span class="lede">A closed-loop benchmark whose scenario coverage is organized by a real-world
       traffic-safety taxonomy — 28 outcome leaves, 73 nuPlan scenario types, six safety capabilities,
@@ -596,20 +596,20 @@
     observation-domain gap, while photorealistic platforms do not organize scenario coverage around
     an explicit traffic-safety taxonomy. It therefore remains unclear which safety failures current
     policies exhibit under photorealistic closed-loop execution.</p>
-    <p>We introduce <b>NavSafe</b>, a benchmark that combines closed-loop execution, photorealistic
+    <p>We introduce <b>NavSafe-∞</b>, a benchmark that combines closed-loop execution, photorealistic
     observations, and taxonomy-grounded safety-critical events. Guided by the 28 outcome leaves of
     RoadSafe365, we screen the nuPlan test set for relevant scenarios and supplement selected
     uncovered taxonomy cells through 3D-asset or dynamic-actor insertion; every admitted scenario is
     manually verified. <b>NuRec</b> reconstructs each event as an editable environment, and
-    <b>NexusSim</b> executes policies under an event-based, semi-reactive protocol. NavSafe reports
-    four event-level metrics and success rates across six safety capabilities. NavSafe provides a
+    <b>NexusSim</b> executes policies under an event-based, semi-reactive protocol. NavSafe-∞ reports
+    four event-level metrics and success rates across six safety capabilities. NavSafe-∞ provides a
     controlled simulator stress test of closed-loop behavior, not an estimate of real-world crash
     risk.</p>
   </div>
 
   <div class="sechead">
     <p class="eyebrow">Three defining properties</p>
-    <h2 class="sec serif">What NavSafe puts in one place</h2>
+    <h2 class="sec serif">What NavSafe-∞ puts in one place</h2>
   </div>
   <div class="pillars">
     <div class="pillar" style="--pc: var(--a1)">
@@ -661,7 +661,7 @@
           <td class="c yes">✓</td><td class="c no">—</td><td class="c mid">partial</td></tr>
       <tr><td>Photorealistic closed-loop<small>HUGSIM, DriveArena</small></td>
           <td class="c yes">✓</td><td class="c yes">✓</td><td class="c no">—</td></tr>
-      <tr class="us"><td>NavSafe<small>this work</small></td>
+      <tr class="us"><td>NavSafe-∞<small>this work</small></td>
           <td class="c yes">✓</td><td class="c yes">✓</td><td class="c yes">✓</td></tr>
     </tbody>
   </table></div>
@@ -675,7 +675,7 @@
   </div>
   <figure class="fig">
     <div class="board">
-      <svg viewBox="0 34 1180 262" role="img" aria-label="NavSafe pipeline: screening, verification, insertion, reconstruction, closed-loop rollout, scoring">
+      <svg viewBox="0 34 1180 262" role="img" aria-label="NavSafe-∞ pipeline: screening, verification, insertion, reconstruction, closed-loop rollout, scoring">
         <!-- stage boxes -->
         <g>
           <rect class="sv-box" x="8"   y="52" width="206" height="96" rx="9"/>
@@ -872,7 +872,7 @@
   <div class="pillars" style="grid-template-columns: 1fr 1fr">
     <div class="pillar" style="--pc: var(--a4)">
       <span class="ix">RQ1</span>
-      <h3>What does NavSafe expose beyond open-loop evaluation?</h3>
+      <h3>What does NavSafe-∞ expose beyond open-loop evaluation?</h3>
       <p>Terminal reasons — ego-attributable collision, roadway departure, rule violation, deadlock,
       timeout, runtime failure, reconstruction invalidity — reported by leaf, capability and
       provenance; paired e⁰/e⁺ failure flips isolate sensitivity to the inserted factor. RQ1 also
@@ -891,7 +891,7 @@
 
   <div class="limit">
     <h3>Scope and limitations</h3>
-    <p>NavSafe provides validity evidence within the declared simulator, not proof of a real-world
+    <p>NavSafe-∞ provides validity evidence within the declared simulator, not proof of a real-world
     safety construct. It over-samples rare and constructed hazards and has no exposure model, so its
     score is neither a crash-rate estimate nor an on-road safety certification.</p>
     <p>The simulation-to-reality gap remains the principal limitation. Photorealistic rendering does
@@ -918,7 +918,7 @@
   (computed 2026-08-04) from <code>navhard_md_logs</code> descriptors + the nuPlan
   <code>scenario_tag</code> table.</p>
 
-  <p class="colo">NavSafe — UC San Diego · UC Los Angeles. Reconstructed imagery inherits the privacy
+  <p class="colo">NavSafe-∞ — UC San Diego · UC Los Angeles. Reconstructed imagery inherits the privacy
   and licensing constraints of its source data; releases preserve nuPlan terms.</p>
 </div></footer>
 </main>

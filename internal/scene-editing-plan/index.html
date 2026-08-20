@@ -3,9 +3,9 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Scene-Editing Pipeline — Design Plan · NavSafe internal</title>
+<title>Scene-Editing Pipeline — Design Plan · NavSafe-∞ internal</title>
 <meta name="robots" content="noindex, nofollow">
-<meta name="description" content="Internal working document: how the 83 actor-built NavSafe scenarios get built. Not part of the public release.">
+<meta name="description" content="Internal working document: how the 83 actor-built NavSafe-∞ scenarios get built. Not part of the public release.">
 <link rel="icon" href="/favicon.svg" type="image/svg+xml">
 <link rel="alternate icon" href="/favicon.ico" sizes="16x16 32x32">
 <link rel="apple-touch-icon" href="/apple-touch-icon.png">
@@ -16,7 +16,7 @@
 <body>
 
 <nav id="top"><div class="inner">
-  <a class="brand" href="/"><img src="/logo.png" alt=""><em>Nav</em>Safe</a>
+  <a class="brand" href="/"><img src="/logo.png" alt=""><em>Nav</em>Safe-∞</a>
   <a class="navtag" href="/internal/">Internal</a>
   <span class="navspace"></span>
   <a class="backlink" href="/internal/">&larr;&nbsp;All internal plans</a>
@@ -70,7 +70,7 @@
 
     <section id="pl-1">
       <h3><span class="no">1</span> What this pipeline is for</h3>
-      <p>NavSafe measures coverage in <b>taxonomy leaves</b>: <b>≥ 10 scenarios per leaf across
+      <p>NavSafe-∞ measures coverage in <b>taxonomy leaves</b>: <b>≥ 10 scenarios per leaf across
       28 leaves, 500 in total</b>. The 73 nuPlan scenario types are the <b>mining vocabulary</b> —
       the tags through which a leaf gets populated.</p>
       <p>Most of the 500 come from mining navhard / navtest / test. Only the leaves mining
@@ -528,7 +528,7 @@ nexussim/scenario/edits.py
 
     <div class="planfoot">
       Internal working document — not part of the public release. Kept in sync with
-      <code>NavSafe/Scene Editing Pipeline — Design Plan.md</code>.
+      <code>NavSafe-∞/Scene Editing Pipeline — Design Plan.md</code>.
     </div>
 
   </article>
@@ -671,11 +671,11 @@ const PLAN_LEAVES = [
     checks: [
       "the rider is composed onto the bike plausibly — seated, correctly scaled, feet at the pedals. This is the leaf's characteristic failure",
       "the path is plausible for a bicycle (no lean or wobble is acceptable; an implausible turn radius is not)",
-      "the pass geometry leaves the ego a <b>legal lateral clearance</b> option at the standard NavSafe adopts (1.5 m or 0.91 m — state which)",
+      "the pass geometry leaves the ego a <b>legal lateral clearance</b> option at the standard NavSafe-∞ adopts (1.5 m or 0.91 m — state which)",
       "the group reads as a group sharing one gap, not as clones in a line",
     ],
     note: { kind: "plain", title: "Note",
-      html: "<code>motorcycle + rider</code> assets belong to this leaf's episodes, but motorcyclists are not a VRU subgroup under the definition NavSafe adopts, so motorcycle contacts score at vehicle severity. The built five are bicycles." },
+      html: "<code>motorcycle + rider</code> assets belong to this leaf's episodes, but motorcyclists are not a VRU subgroup under the definition NavSafe-∞ adopts, so motorcycle contacts score at vehicle severity. The built five are bicycles." },
   },
 ];
 
