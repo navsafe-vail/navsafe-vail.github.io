@@ -165,7 +165,7 @@
     margin: 40px auto 0; max-width: 1360px; padding: 0 28px;
   }
   .strip figure { margin: 0; position: relative; overflow: hidden; border-radius: 6px; background: var(--panel); border: 1px solid var(--line-soft); }
-  .strip img { display: block; width: 100%; aspect-ratio: 16/9; object-fit: cover; }
+  .strip img, .strip video { display: block; width: 100%; aspect-ratio: 16/9; object-fit: cover; }
   .strip figcaption {
     position: absolute; left: 0; right: 0; bottom: 0; padding: 14px 8px 5px;
     font: 10px/1.3 ui-monospace, Menlo, monospace; color: #fff;
@@ -1517,11 +1517,15 @@ const leafOfType = {};
 for (const l of LEAVES) for (const t of l.types) leafOfType[t] = l;
 const abilityOfType = t => ABILITIES.find(a => a.id === (leafOfType[t] || {}).ab);
 
-// ---- hero poster strip: five stills, no video download
+// ---- hero strip: five full-length looping clips, autoplaying muted on load.
+// Poster stays as the video's poster attribute so the frame is never blank
+// while it loads.
 const HERO = ["on_intersection", "near_pedestrian_on_crosswalk", "near_trafficcone_on_driveable",
               "traversing_traffic_light_intersection", "on_carpark"];
 document.getElementById("heroStrip").innerHTML = HERO.map(t =>
-  `<figure><img src="${posterOf(t)}" alt="Reconstructed ${t.replace(/_/g, " ")} scenario" loading="lazy">
+  `<figure><video src="${CLIP_BASE + CLIPS[t]}" poster="${posterOf(t)}"
+     autoplay muted loop playsinline preload="auto"
+     aria-label="Reconstructed ${t.replace(/_/g, " ")} scenario"></video>
    <figcaption>${t}</figcaption></figure>`).join("");
 
 // ---- capability cards (protocol section) — same six abilities as the map
