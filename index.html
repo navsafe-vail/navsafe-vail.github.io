@@ -408,6 +408,42 @@
   .lit { box-shadow: 0 0 0 1.5px var(--ac); }
   .type.lit2 { border-left-color: var(--ac); background: color-mix(in srgb, var(--ac) 12%, transparent); box-shadow: none; }
 
+  /* ---------- insertion showcase: two constructed-scenario examples ---------- */
+  .inscards { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; margin: 24px 0 0; }
+  .inscard {
+    background: var(--panel); border: 1px solid var(--line-soft); border-radius: 12px;
+    box-shadow: var(--shadow); overflow: hidden;
+  }
+  .inscard .frame {
+    position: relative; aspect-ratio: 1332 / 480; border-bottom: 1px solid var(--line-soft);
+    background: var(--panel-2); overflow: hidden;
+  }
+  .inscard video { display: block; width: 100%; height: 100%; object-fit: cover; cursor: pointer; }
+  .inscard .status {
+    position: absolute; inset: 0; display: flex; align-items: center; justify-content: center;
+    font: 11px/1 ui-monospace, Menlo, monospace; color: var(--ink-dim);
+    background: color-mix(in srgb, var(--panel) 70%, transparent); cursor: pointer;
+  }
+  .inscard.loaded .status { display: none; }
+  .inscard .body { padding: 14px 16px 16px; }
+  .inscard .ihead { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+  .inscard .itag {
+    font: 700 10.5px/1 ui-monospace, Menlo, monospace; letter-spacing: .08em; color: var(--ac);
+    border: 1px solid var(--line); border-radius: 999px; padding: 4px 9px;
+  }
+  .inscard .iverdict {
+    font: 700 10.5px/1 ui-monospace, Menlo, monospace; letter-spacing: .06em; text-transform: uppercase;
+    border-radius: 999px; padding: 4px 9px; margin-left: auto;
+  }
+  .inscard .iverdict.ok { color: var(--a2); background: color-mix(in srgb, var(--a2) 14%, transparent); }
+  .inscard .iverdict.fail { color: var(--a5); background: color-mix(in srgb, var(--a5) 14%, transparent); }
+  .inscard h4 { margin: 10px 0 0; font-size: 14.5px; font-weight: 600; letter-spacing: -0.005em; }
+  .inscard p { margin: 6px 0 0; font-size: 12.5px; color: var(--ink-dim); line-height: 1.6; }
+  .inscard .imeta {
+    margin: 10px 0 0; font: 11px/1 ui-monospace, Menlo, monospace; color: var(--ink-faint);
+  }
+  @media (max-width: 720px) { .inscards { grid-template-columns: 1fr; } }
+
   /* ---------- coverage ---------- */
   .gnote { font-size: 12.5px; color: var(--ink-dim); margin: 16px 0 0; max-width: 82ch; }
   .reconstat { display: flex; gap: 34px; margin: 24px 0 18px; flex-wrap: wrap; }
@@ -739,6 +775,60 @@
     cells that log mining cannot populate are instantiated by inserting a static 3D asset, a dynamic
     actor, or both, always paired with a reference episode that isolates the inserted factor.</figcaption>
   </figure>
+
+  <div class="sechead">
+    <p class="eyebrow">Constructed scenario · insertion pipeline in action</p>
+    <h2 class="sec serif">Two policy rollouts on an inserted actor</h2>
+    <p class="sub">Both clips place a non-reactive actor into the same reconstructed host scene via
+    <code class="m">dart_out</code> / crossing-actor insertion (Fig. above, stage 02–04), then run
+    the same closed-loop DrivoR policy against it. Left: BEV plan and target region. Right: the
+    NuRec-rendered ego camera the policy actually sees.</p>
+  </div>
+  <div class="inscards">
+    <div class="inscard" id="insPed">
+      <div class="frame">
+        <div class="status">loading clip…</div>
+        <video loop muted playsinline autoplay preload="auto"
+               poster="posters/near_pedestrian_inserted-walkped01.jpg"
+               src="clips_5s_stitched/near_pedestrian_inserted-walkped01.mp4"
+               aria-label="Inserted pedestrian scenario, DrivoR policy, collision"></video>
+      </div>
+      <div class="body">
+        <div class="ihead">
+          <span class="itag">R-1 · Pedestrian-Involved</span>
+          <span class="iverdict fail">Collision</span>
+        </div>
+        <h4>Pedestrians crossing near a shared-space path</h4>
+        <p>Two pedestrians are inserted on a path that intersects the ego's route. DrivoR continues
+        near its commanded speed through the conflict and the rollout terminates in an
+        ego-attributable collision — the kind of fallback-coverage failure RQ2 diagnoses (§4.2).</p>
+        <p class="imeta">policy: DrivoR · outcome: CRASH · leaf: R-1</p>
+      </div>
+    </div>
+    <div class="inscard" id="insDog">
+      <div class="frame">
+        <div class="status">loading clip…</div>
+        <video loop muted playsinline autoplay preload="auto"
+               poster="posters/animal_dart_out-dogcross01.jpg"
+               src="clips_5s_stitched/animal_dart_out-dogcross01.mp4"
+               aria-label="Inserted dog dart-out scenario, DrivoR policy, no collision"></video>
+      </div>
+      <div class="body">
+        <div class="ihead">
+          <span class="itag">R-4 · Animal-Involved</span>
+          <span class="iverdict ok">No collision</span>
+        </div>
+        <h4>A dog dart-out from the roadside verge</h4>
+        <p>R-4 has no nuPlan scenario type at all, so this event exists only through insertion: a
+        dog is baked on a <code class="m">dart_out</code> trajectory — holding the verge, then
+        sweeping across the lane and clear of the far edge (Plan §7). DrivoR slows and lets it pass.</p>
+        <p class="imeta">policy: DrivoR · outcome: success · leaf: R-4</p>
+      </div>
+    </div>
+  </div>
+  <p class="gnote">Both clips share one host scene and one policy, so the only varying factor is the
+  inserted actor — the same reference-pairing discipline the scene-editing pipeline uses to isolate
+  what a failure is actually caused by. Click a frame to pause.</p>
 </section>
 
 <!-- =====================  TAXONOMY MAP  ===================== -->
@@ -1390,6 +1480,16 @@ buildWires();
 applyStats();
 addEventListener("resize", () => { drawWires(); if (pinned) pinned.click(), pinned = null; });
 new ResizeObserver(() => drawWires()).observe(board);
+
+// ---- insertion-showcase cards: only two clips, so they autoplay on load
+// (muted, looping) instead of the taxonomy map's click-to-load pattern.
+// Click still toggles pause/resume.
+for (const id of ["insPed", "insDog"]) {
+  const card = document.getElementById(id);
+  const v = card.querySelector("video");
+  v.addEventListener("loadeddata", () => card.classList.add("loaded"), { once: true });
+  v.addEventListener("click", () => { v.paused ? v.play().catch(() => {}) : v.pause(); });
+}
 
 /* =====================================================================
    Page furniture: theme, hero strip, capability cards, coverage table,
