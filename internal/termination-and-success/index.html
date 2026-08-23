@@ -1,0 +1,215 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Termination State &amp; Success Rate — Reference · NavSafe-∞ internal</title>
+<meta name="robots" content="noindex, nofollow">
+<meta name="description" content="Internal reference: how NavSafe-∞ turns a trace into a termination reason, an infraction set, and Success Rate. Not part of the public release.">
+<link rel="icon" href="/favicon.svg" type="image/svg+xml">
+<link rel="alternate icon" href="/favicon.ico" sizes="16x16 32x32">
+<link rel="apple-touch-icon" href="/apple-touch-icon.png">
+<meta name="theme-color" content="#F6F5F2" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#191A1C" media="(prefers-color-scheme: dark)">
+<link rel="stylesheet" href="/internal/plan.css">
+</head>
+<body>
+
+<nav id="top"><div class="inner">
+  <a class="brand" href="/"><img src="/logo.png" alt=""><em>Nav</em>Safe-∞</a>
+  <a class="navtag" href="/internal/">Internal</a>
+  <span class="navspace"></span>
+  <a class="backlink" href="/internal/">&larr;&nbsp;All internal plans</a>
+  <a class="backlink" href="/">Public site&nbsp;&nearr;</a>
+  <button id="themebtn" title="Toggle light / dark" aria-label="Toggle light / dark">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+      <circle cx="12" cy="12" r="4.2"/><path d="M12 2.4v2.2M12 19.4v2.2M2.4 12h2.2M19.4 12h2.2M5.2 5.2l1.6 1.6M17.2 17.2l1.6 1.6M18.8 5.2l-1.6 1.6M6.8 17.2l-1.6 1.6"/>
+    </svg>
+  </button>
+</div></nav>
+
+<!-- =====================================================================
+     Termination State + Success Rate reference. Source of record:
+     navsafe_termination_and_success.md. Straight conversion of the chain
+     description — no per-leaf structure here, so unlike the scene-editing
+     plan this page is static markup rather than data-driven.
+     ===================================================================== -->
+<main>
+<div class="planwrap">
+
+  <aside class="plantoc">
+    <p class="tt">Contents</p>
+    <nav id="tocnav"></nav>
+  </aside>
+
+  <div class="plandocs">
+  <article class="plandoc">
+
+    <header>
+      <p class="eyebrow">Internal · reference</p>
+      <h1 class="doctitle serif">Termination State &amp; Success Rate</h1>
+      <p class="docsub">How a run's frame trace becomes one termination reason, a counted
+      infraction set, and a Success Rate — the exact chain, function by function.</p>
+      <pre class="planpre">frames (trace) -&gt; termination.classify      <span class="cm">ONE reason, the earliest event</span>
+               -&gt; infractions_from_trace    <span class="cm">counted contacts (fault-respecting)</span>
+               -&gt; route.route_progress      <span class="cm">monotone route completion</span>
+               -&gt; termination.to_route_result   <span class="cm">RouteResult, or None (excluded)</span>
+               -&gt; RouteResult.success()     <span class="cm">SR</span></pre>
+    </header>
+
+    <!-- ---------------------------- PART 1 ---------------------------- -->
+    <section id="ts-design">
+      <div class="parthead">
+        <p class="pk">Part I</p>
+        <h2 class="serif">Termination</h2>
+        <p>Exactly one reason per episode, chosen by <code>termination.classify</code>. It answers
+        "why did stepping stop" — never "what did the ego do wrong." Everything countable against
+        the policy is an infraction (Part II).</p>
+      </div>
+    </section>
+
+    <section id="ts-1">
+      <h3><span class="no">1.1</span> The reasons</h3>
+      <p><a href="https://github.com/VAIL-UCLA/NexusSim/blob/e0cabf8/nexussim/navsafe/termination.py#L57"><code>termination.py::TerminationReason</code></a>.
+      Exactly one per episode.</p>
+      <div class="planscroll">
+        <table class="plantab">
+          <thead><tr><th>reason</th><th>fires when</th><th>policy-attributed</th><th>scored?</th></tr></thead>
+          <tbody>
+            <tr><td><code>goal_reached</code></td><td><code>route.at_goal()</code> held (§1.3)</td><td>yes</td><td>yes, <code>completed=True</code></td></tr>
+            <tr><td><code>budget_expired</code></td><td>nothing else ended it and elapsed scored time ≥ <code>t_max</code></td><td>yes</td><td>yes, adds <code>route_timeout</code></td></tr>
+            <tr><td><code>deadlock</code></td><td>ego speed &lt; 0.1 m/s for 5 s continuous</td><td>yes</td><td>yes, adds <code>vehicle_blocked</code></td></tr>
+            <tr><td><code>contact_at_fault</code></td><td>a contact with <code>at_fault=True</code></td><td>yes</td><td>yes (contact counted by §2.2)</td></tr>
+            <tr><td><code>contact_not_at_fault</code></td><td>a contact with <code>at_fault=False</code></td><td><b>no</b></td><td>yes — ended, but the contact is not counted</td></tr>
+            <tr><td><code>off_drivable</code></td><td>frame <code>on_drivable=False</code> (EPDMS <code>DAC &lt; 1.0</code>, map required)</td><td>yes</td><td>yes, adds <code>route_dev</code></td></tr>
+            <tr><td><code>wrong_way</code></td><td>frame <code>driving_direction_ok=False</code> (EPDMS <code>DDC == 0.0</code>, &gt; 6 m against traffic, map required)</td><td>yes</td><td>yes, adds <code>wrong_way</code></td></tr>
+            <tr><td><code>trace_exhausted</code></td><td>nothing else ended it and elapsed &lt; <code>t_max</code> — harness stopped, not the ego</td><td>no</td><td>yes</td></tr>
+            <tr><td><code>infra_failure</code></td><td>simulator/renderer error, or no scored frames</td><td>no</td><td><b>no</b> — <code>RouteResult</code> is <code>None</code>, status <code>excluded</code></td></tr>
+            <tr><td><code>envelope_exit</code></td><td>retired 2026-08-19; only in old artifacts</td><td>no</td><td>no</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <p>Thresholds:
+      <a href="https://github.com/VAIL-UCLA/NexusSim/blob/e0cabf8/nexussim/navsafe/termination.py#L53-L54"><code>DEADLOCK_SPEED_MS = 0.1</code>, <code>DEADLOCK_HOLD_S = 5.0</code></a>;
+      <a href="https://github.com/VAIL-UCLA/NexusSim/blob/e0cabf8/nexussim/evaluation/scorers/epdms_trajectory_scorer_fast.py#L111-L112"><code>DDC_HALF_VIOLATION_M = 2.0</code>, <code>DDC_FULL_VIOLATION_M = 6.0</code></a>
+      (only the full violation terminates; 0.5 is a brush, not an ending).
+      <code>policy_attributed</code> is
+      <a href="https://github.com/VAIL-UCLA/NexusSim/blob/e0cabf8/nexussim/navsafe/termination.py#L101">here</a>.</p>
+    </section>
+
+    <section id="ts-2">
+      <h3><span class="no">1.3</span> Goal</h3>
+      <p><a href="https://github.com/VAIL-UCLA/NexusSim/blob/e0cabf8/nexussim/navsafe/scoring/route.py#L61"><code>scoring/route.py::at_goal</code></a>:
+      remaining route arc ≤ <code>max(2.0 m, 1 % of total arc)</code> <b>and</b> distance to the
+      goal point &lt; 10 m
+      (<a href="https://github.com/VAIL-UCLA/NexusSim/blob/e0cabf8/nexussim/navsafe/scoring/route.py#L34-L49"><code>COMPLETION_PCT_FOR_DONE = 99.0</code>, <code>GOAL_RADIUS_M = 10.0</code>, <code>GOAL_ARC_TOL_M = 2.0</code></a>).
+      Route completion is a monotone cursor along the logged ego path
+      (<a href="https://github.com/VAIL-UCLA/NexusSim/blob/e0cabf8/nexussim/navsafe/scoring/route.py#L100"><code>route_progress</code></a>).
+      The live evaluator calls the same predicate over the same dense path
+      (<a href="https://github.com/VAIL-UCLA/NexusSim/blob/e0cabf8/nexussim/evaluation/route_manager.py#L65"><code>route_manager.py::goal_reached</code></a>).</p>
+      <p>If the evaluator's <code>metrics.json</code> says <code>goal_reached</code> but the
+      recompute disagrees, the report is honoured with <code>goal_frame=None</code> and a note
+      (<a href="https://github.com/VAIL-UCLA/NexusSim/blob/e0cabf8/nexussim/navsafe/scoring/from_run.py#L213-L218">here</a>).</p>
+    </section>
+
+    <section id="ts-3">
+      <h3><span class="no">1.4</span> Time budget</h3>
+      <p><code>t_max</code> =
+      <a href="https://github.com/VAIL-UCLA/NexusSim/blob/e0cabf8/nexussim/navsafe/scoring/from_run.py#L51"><code>SAFETY_CEILING_S = 60.0</code></a>
+      unless <code>--t-max</code> is passed. The rubric's "0.95-quantile human × 1.3, floor 10 s"
+      (<code>rubric/calibrate_tmax.py</code>) is <b>not</b> used by this chain. Windows shorter
+      than <code>t_max</code> get a <code>scored window is … but t_max is …</code> note.</p>
+    </section>
+
+    <!-- ---------------------------- PART 2 ---------------------------- -->
+    <section id="ts-sr">
+      <div class="parthead">
+        <p class="pk">Part II</p>
+        <h2 class="serif">Success Rate</h2>
+        <p>One rule, for every scenario and every taxonomy leaf: completion plus a clean
+        infraction set.</p>
+      </div>
+    </section>
+
+    <section id="ts-4">
+      <h3><span class="no">2.1</span> The rule</h3>
+      <p><a href="https://github.com/VAIL-UCLA/NexusSim/blob/e0cabf8/nexussim/navsafe/scoring/metrics.py#L117-L135"><code>scoring/metrics.py::RouteResult.success</code></a>
+      — Bench2Drive <code>merge_route_json.py</code> L20-27, one rule for every scenario and
+      every taxonomy leaf:</p>
+      <pre class="planpre">success  =  completed
+            AND every infraction count is 0, except min_speed_infractions
+            AND outside_route_lanes == 0</pre>
+      <p><code>completed</code> is <code>termination.reason is GOAL_REACHED</code>
+      (<a href="https://github.com/VAIL-UCLA/NexusSim/blob/e0cabf8/nexussim/navsafe/termination.py#L278-L281"><code>to_route_result</code></a>).
+      Route completion percentage alone never grants success. SR over a set =
+      <a href="https://github.com/VAIL-UCLA/NexusSim/blob/e0cabf8/nexussim/navsafe/scoring/metrics.py#L155"><code>success_rate</code></a>,
+      with an explicit denominator; excluded episodes (<code>RouteResult is None</code>) are
+      outside it, never 0.</p>
+    </section>
+
+    <section id="ts-5">
+      <h3><span class="no">2.2</span> What can be in <code>infractions</code></h3>
+      <div class="planscroll">
+        <table class="plantab">
+          <thead><tr><th>key</th><th>source</th><th>in DS penalty</th><th>fails SR</th></tr></thead>
+          <tbody>
+            <tr><td><code>collisions_pedestrian</code></td><td>contact kind <code>vru</code>, at-fault only, once per (agent, kind) pair — <a href="https://github.com/VAIL-UCLA/NexusSim/blob/e0cabf8/nexussim/navsafe/scoring/metrics.py#L547"><code>infractions_from_trace</code></a></td><td>×0.50</td><td>yes</td></tr>
+            <tr><td><code>collisions_vehicle</code></td><td>kinds <code>rear_end</code> / <code>angle</code> / <code>sideswipe</code>; or the evaluator's <code>collision_count</code> when no frame places a contact (<a href="https://github.com/VAIL-UCLA/NexusSim/blob/e0cabf8/nexussim/navsafe/scoring/from_run.py#L256-L258">fallback</a>)</td><td>×0.60</td><td>yes</td></tr>
+            <tr><td><code>collisions_layout</code></td><td>kind <code>single</code></td><td>×0.65</td><td>yes</td></tr>
+            <tr><td><code>red_light</code></td><td>one per contiguous run of <code>signal_state == "red"</code> frames (<a href="https://github.com/VAIL-UCLA/NexusSim/blob/e0cabf8/nexussim/navsafe/scoring/from_run.py#L265-L272">here</a>); <b>only when the artifact has a <code>TL</code> column</b></td><td>×0.70</td><td>yes</td></tr>
+            <tr><td><code>outside_route_lanes</code></td><td>% of driven distance off-drivable beyond 0.5 m per excursion (<a href="https://github.com/VAIL-UCLA/NexusSim/blob/e0cabf8/nexussim/navsafe/scoring/route.py#L143"><code>outside_route_lanes_pct</code></a>); map required</td><td>×(1 − pct/100)</td><td>yes if &gt; 0</td></tr>
+            <tr><td><code>route_dev</code></td><td>termination <code>off_drivable</code></td><td>no</td><td>yes</td></tr>
+            <tr><td><code>vehicle_blocked</code></td><td>termination <code>deadlock</code></td><td>no</td><td>yes</td></tr>
+            <tr><td><code>route_timeout</code></td><td>termination <code>budget_expired</code></td><td>no</td><td>yes</td></tr>
+            <tr><td><code>wrong_way</code></td><td>termination <code>wrong_way</code> (NavSafe's; no B2D coefficient)</td><td>no</td><td>yes</td></tr>
+            <tr><td><code>stop_infraction</code>, <code>scenario_timeouts</code>, <code>yield_emergency_vehicle_infractions</code></td><td><b>no source</b> — listed under <code>penalty_channels_skipped</code></td><td>—</td><td>never</td></tr>
+            <tr><td><code>min_speed_infractions</code></td><td>disabled upstream</td><td>—</td><td>exempt</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <p>Reason → infraction map:
+      <a href="https://github.com/VAIL-UCLA/NexusSim/blob/e0cabf8/nexussim/navsafe/termination.py#L240-L255"><code>_REASON_TO_INFRACTION</code></a>.
+      Coefficients:
+      <a href="https://github.com/VAIL-UCLA/NexusSim/blob/e0cabf8/nexussim/navsafe/scoring/metrics.py#L58-L66"><code>PENALTY_COEFFICIENTS</code></a>,
+      <a href="https://github.com/VAIL-UCLA/NexusSim/blob/e0cabf8/nexussim/navsafe/scoring/metrics.py#L84"><code>NON_PENALTY_KEYS</code></a>.
+      Channels actually evaluated vs skipped:
+      <a href="https://github.com/VAIL-UCLA/NexusSim/blob/e0cabf8/nexussim/navsafe/scoring/from_run.py#L91-L101"><code>_CHANNEL_SOURCES</code></a>.</p>
+    </section>
+
+    <section id="ts-6">
+      <h3><span class="no">2.4</span> Not-at-fault contacts</h3>
+      <p><code>contact_not_at_fault</code> ends the episode (the world is no longer meaningful)
+      but adds no infraction and is not policy-attributed. <code>completed</code> is False (the
+      reason is not <code>GOAL_REACHED</code>), so SR is <b>false</b> for that run, with DS =
+      route completion at the contact frame × whatever penalty the run had earned.</p>
+      <div class="plannote">
+        <span class="nk">Observed</span>
+        Seen on <code>05d0a1a763fc5334/drivor</code> (replay agent hit the ego at frame 158).
+      </div>
+    </section>
+
+    <div class="planfoot">
+      Internal working document — not part of the public release. Source:
+      <code>navsafe_termination_and_success.md</code>.
+    </div>
+  </article>
+
+  </div>
+</div>
+</main>
+
+<script src="/internal/plan.js"></script>
+<script>
+initToc([
+  ["part", "#ts-design", "Part I · Termination"],
+  ["",     "#ts-1",      "1.1 · The reasons"],
+  ["",     "#ts-2",      "1.3 · Goal"],
+  ["",     "#ts-3",      "1.4 · Time budget"],
+  ["part", "#ts-sr",     "Part II · Success Rate"],
+  ["",     "#ts-4",      "2.1 · The rule"],
+  ["",     "#ts-5",      "2.2 · Infractions"],
+  ["",     "#ts-6",      "2.4 · Not-at-fault contacts"],
+]);
+</script>
+</body>
+</html>
