@@ -174,22 +174,6 @@
   }
   @media (max-width: 820px) { .strip { grid-template-columns: repeat(2, 1fr); } .strip figure:nth-child(n+5) { display: none; } }
 
-  /* ---------- key numbers ---------- */
-  .kpis {
-    display: grid; grid-template-columns: repeat(5, 1fr); gap: 1px;
-    background: var(--line-soft); border: 1px solid var(--line-soft); border-radius: 10px;
-    overflow: hidden; margin: 44px 0 0;
-  }
-  .kpi { background: var(--panel); padding: 16px 16px 14px; }
-  .kpi .n {
-    font-size: 26px; font-weight: 600; letter-spacing: -0.02em; line-height: 1.1;
-    font-variant-numeric: tabular-nums;
-  }
-  .kpi .l { font-size: 11.5px; color: var(--ink-dim); margin-top: 3px; min-height: 2.6em; }
-  .kpi .s { font-size: 10.5px; color: var(--ink-faint); }
-  @media (max-width: 900px) { .kpis { grid-template-columns: repeat(3, 1fr); } }
-  @media (max-width: 560px) { .kpis { grid-template-columns: repeat(2, 1fr); } }
-
   /* ---------- generic section furniture ---------- */
   .sechead { margin: 88px 0 0; }
   .eyebrow {
@@ -204,65 +188,6 @@
   .rule { border: 0; border-top: 1px solid var(--line-soft); margin: 0; }
   .prose p { max-width: 74ch; }
   .prose code, code.m { font: 12.5px/1.4 ui-monospace, "SF Mono", Menlo, Consolas, monospace; }
-
-  /* abstract */
-  .abstract {
-    margin: 22px 0 0; padding: 26px 30px; background: var(--panel);
-    border: 1px solid var(--line-soft); border-radius: 12px; box-shadow: var(--shadow);
-  }
-  .abstract p { margin: 0; font-size: 15.5px; line-height: 1.72; }
-  .abstract p + p { margin-top: 14px; }
-  .abstract .drop { font-size: 11px; letter-spacing: .14em; text-transform: uppercase; color: var(--ink-faint); font-weight: 700; }
-
-  /* three pillars */
-  .pillars { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; margin: 26px 0 0; }
-  .pillar {
-    background: var(--panel); border: 1px solid var(--line-soft); border-top: 3px solid var(--pc);
-    border-radius: 10px; padding: 20px 20px 18px; box-shadow: var(--shadow);
-  }
-  .pillar .ix { font: 700 11px/1 ui-monospace, Menlo, monospace; color: var(--pc); letter-spacing: .1em; }
-  .pillar h3 { margin: 10px 0 6px; font-size: 16.5px; font-weight: 600; letter-spacing: -0.01em; }
-  .pillar p { margin: 0; font-size: 13.5px; color: var(--ink-dim); }
-  .pillar .who {
-    display: inline-block; margin-top: 12px; font: 11px/1 ui-monospace, Menlo, monospace;
-    color: var(--ink-dim); border: 1px solid var(--line); border-radius: 4px; padding: 4px 7px;
-  }
-  @media (max-width: 800px) { .pillars { grid-template-columns: 1fr; } }
-
-  /* gap matrix */
-  .scrollx { overflow-x: auto; }
-  .matrix { width: 100%; min-width: 520px; border-collapse: collapse; margin: 24px 0 0; font-size: 13.5px; }
-  .matrix th, .matrix td { padding: 11px 12px; text-align: left; border-bottom: 1px solid var(--line-soft); }
-  .matrix thead th {
-    font-size: 10.5px; letter-spacing: .1em; text-transform: uppercase; color: var(--ink-faint);
-    font-weight: 700; vertical-align: bottom;
-  }
-  .matrix td.c, .matrix th.c { text-align: center; width: 15%; }
-  .matrix tbody td:first-child { font-weight: 500; }
-  .matrix td small { display: block; color: var(--ink-faint); font-size: 11.5px; font-weight: 400; }
-  .matrix tr.us td { background: color-mix(in srgb, var(--a1) 8%, transparent); border-bottom-color: var(--line); }
-  .matrix tr.us td:first-child { font-weight: 700; border-radius: 8px 0 0 8px; }
-  .matrix tr.us td:last-child { border-radius: 0 8px 8px 0; }
-  .yes { color: var(--a2); font-weight: 700; }
-  .no { color: var(--ghost); }
-  .mid { color: var(--a3); font-weight: 700; }
-  .mkey { font-size: 11.5px; color: var(--ink-faint); margin: 10px 0 0; display: flex; gap: 16px; flex-wrap: wrap; }
-
-  /* pipeline figure */
-  figure.fig { margin: 26px 0 0; }
-  figure.fig .board {
-    background: var(--panel); border: 1px solid var(--line-soft); border-radius: 12px;
-    padding: 22px 18px; box-shadow: var(--shadow); overflow-x: auto;
-  }
-  figure.fig svg { display: block; width: 100%; min-width: 720px; height: auto; }
-  figure.fig figcaption { font-size: 12.5px; color: var(--ink-dim); margin: 12px 0 0; max-width: 82ch; }
-  figure.fig figcaption b { color: var(--ink); font-weight: 600; }
-  .sv-box { fill: var(--panel-2); stroke: var(--line); }
-  .sv-t { fill: var(--ink); font: 600 13px ui-sans-serif, system-ui, sans-serif; }
-  .sv-s { fill: var(--ink-dim); font: 11px ui-sans-serif, system-ui, sans-serif; }
-  .sv-k { fill: var(--ink-faint); font: 700 9.5px ui-monospace, Menlo, monospace; letter-spacing: .1em; }
-  .sv-arrow { stroke: var(--ghost); stroke-width: 1.4; fill: none; }
-  .sv-dash { stroke: var(--ghost); stroke-width: 1.2; fill: none; stroke-dasharray: 4 4; }
 
   /* ---------- taxonomy map (existing interactive figure) ---------- */
   .maphint { font-size: 13px; color: var(--ink-dim); max-width: 82ch; margin: 14px 0 0; }
@@ -408,139 +333,6 @@
   .lit { box-shadow: 0 0 0 1.5px var(--ac); }
   .type.lit2 { border-left-color: var(--ac); background: color-mix(in srgb, var(--ac) 12%, transparent); box-shadow: none; }
 
-  /* ---------- insertion showcase: two constructed-scenario examples ---------- */
-  .inscards { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; margin: 24px 0 0; }
-  .inscard {
-    background: var(--panel); border: 1px solid var(--line-soft); border-radius: 12px;
-    box-shadow: var(--shadow); overflow: hidden;
-  }
-  .inscard .frame {
-    position: relative; aspect-ratio: 1332 / 480; border-bottom: 1px solid var(--line-soft);
-    background: var(--panel-2); overflow: hidden;
-  }
-  .inscard video { display: block; width: 100%; height: 100%; object-fit: cover; cursor: pointer; }
-  .inscard .status {
-    position: absolute; inset: 0; display: flex; align-items: center; justify-content: center;
-    font: 11px/1 ui-monospace, Menlo, monospace; color: var(--ink-dim);
-    background: color-mix(in srgb, var(--panel) 70%, transparent); cursor: pointer;
-  }
-  .inscard.loaded .status { display: none; }
-  .inscard .body { padding: 14px 16px 16px; }
-  .inscard .ihead { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
-  .inscard .itag {
-    font: 700 10.5px/1 ui-monospace, Menlo, monospace; letter-spacing: .08em; color: var(--ac);
-    border: 1px solid var(--line); border-radius: 999px; padding: 4px 9px;
-  }
-  .inscard .iverdict {
-    font: 700 10.5px/1 ui-monospace, Menlo, monospace; letter-spacing: .06em; text-transform: uppercase;
-    border-radius: 999px; padding: 4px 9px; margin-left: auto;
-  }
-  .inscard .iverdict.ok { color: var(--a2); background: color-mix(in srgb, var(--a2) 14%, transparent); }
-  .inscard .iverdict.fail { color: var(--a5); background: color-mix(in srgb, var(--a5) 14%, transparent); }
-  .inscard h4 { margin: 10px 0 0; font-size: 14.5px; font-weight: 600; letter-spacing: -0.005em; }
-  .inscard p { margin: 6px 0 0; font-size: 12.5px; color: var(--ink-dim); line-height: 1.6; }
-  .inscard .imeta {
-    margin: 10px 0 0; font: 11px/1 ui-monospace, Menlo, monospace; color: var(--ink-faint);
-  }
-  @media (max-width: 720px) { .inscards { grid-template-columns: 1fr; } }
-
-  /* ---------- coverage ---------- */
-  .gnote { font-size: 12.5px; color: var(--ink-dim); margin: 16px 0 0; max-width: 82ch; }
-  .reconstat { display: flex; gap: 34px; margin: 24px 0 18px; flex-wrap: wrap; }
-  .reconstat div { display: flex; flex-direction: column; }
-  .reconstat .k { font-size: 26px; font-weight: 600; color: var(--ink); line-height: 1.1; font-variant-numeric: tabular-nums; }
-  .reconstat .l { font-size: 11.5px; color: var(--ink-dim); }
-  .tablecard {
-    background: var(--panel); border: 1px solid var(--line-soft); border-radius: 12px;
-    box-shadow: var(--shadow); overflow-x: auto; margin: 18px 0 0;
-  }
-
-  /* ---------- protocol ---------- */
-  .metrics { display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; margin: 24px 0 0; }
-  .metric {
-    background: var(--panel); border: 1px solid var(--line-soft); border-radius: 10px;
-    padding: 16px 16px 14px; box-shadow: var(--shadow);
-  }
-  .metric .abbr { font: 700 12px/1 ui-monospace, Menlo, monospace; letter-spacing: .08em; color: var(--a1); }
-  .metric h4 { margin: 8px 0 5px; font-size: 14.5px; font-weight: 600; }
-  .metric p { margin: 0; font-size: 12.5px; color: var(--ink-dim); }
-  @media (max-width: 900px) { .metrics { grid-template-columns: repeat(2, 1fr); } }
-  @media (max-width: 520px) { .metrics { grid-template-columns: 1fr; } }
-
-  .caps { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; margin: 20px 0 0; }
-  .cap {
-    background: var(--panel); border: 1px solid var(--line-soft); border-left: 3px solid var(--ac);
-    border-radius: 10px; padding: 14px 16px; box-shadow: var(--shadow);
-  }
-  .cap .cid { font: 700 11px/1 ui-monospace, Menlo, monospace; color: var(--ac); letter-spacing: .08em; }
-  .cap h4 { margin: 7px 0 4px; font-size: 14px; font-weight: 600; }
-  .cap p { margin: 0; font-size: 12.5px; color: var(--ink-dim); }
-  .cap .anchor { display: block; margin-top: 7px; font-size: 11px; color: var(--ink-faint); }
-  @media (max-width: 860px) { .caps { grid-template-columns: 1fr 1fr; } }
-  @media (max-width: 560px) { .caps { grid-template-columns: 1fr; } }
-
-  .formula {
-    margin: 20px 0 0; padding: 16px 18px; background: var(--panel-2);
-    border: 1px solid var(--line-soft); border-radius: 10px;
-    font: 12.5px/1.9 ui-monospace, "SF Mono", Menlo, Consolas, monospace; color: var(--ink-dim);
-    overflow-x: auto;
-  }
-  .formula b { color: var(--ink); font-weight: 600; }
-
-  /* leaderboard */
-  .lbtab { border-collapse: collapse; width: 100%; font-size: 12.5px; min-width: 860px; }
-  .lbtab th, .lbtab td { padding: 8px 10px; border-bottom: 1px solid var(--line-soft); text-align: right; }
-  .lbtab th:first-child, .lbtab td:first-child { text-align: left; }
-  .lbtab th:nth-child(2), .lbtab td:nth-child(2) { text-align: left; }
-  .lbtab thead th {
-    font-size: 10px; letter-spacing: .07em; text-transform: uppercase; color: var(--ink-faint);
-    font-weight: 700; background: var(--panel-2);
-  }
-  .lbtab thead tr.grp th[colspan] {
-    text-align: center; color: var(--ink-dim); border-bottom: 1px solid var(--line-soft);
-    padding-bottom: 5px;
-  }
-  .lbtab thead tr.grp th[rowspan] { vertical-align: bottom; }
-  .lbtab tr.group td {
-    font-size: 10.5px; letter-spacing: .1em; text-transform: uppercase; color: var(--ink-faint);
-    font-weight: 700; background: var(--panel-2); padding-top: 9px; padding-bottom: 9px;
-  }
-  .lbtab td.name { font-weight: 500; }
-  .lbtab td.regime { color: var(--ink-dim); font: 11px ui-monospace, Menlo, monospace; }
-  .lbtab td.pending { color: var(--ghost); font-variant-numeric: tabular-nums; }
-  .lbtab .sep { border-left: 1px solid var(--line-soft); }
-  .pendingbadge {
-    display: inline-flex; align-items: center; gap: 7px; font-size: 11.5px; color: var(--ink-dim);
-    border: 1px solid var(--line); border-radius: 999px; padding: 4px 11px; margin: 0 0 0 10px;
-  }
-  .pendingbadge i { width: 6px; height: 6px; border-radius: 50%; background: var(--a3); display: block; }
-
-  /* bibtex */
-  .cite {
-    margin: 22px 0 0; background: var(--panel); border: 1px solid var(--line-soft);
-    border-radius: 12px; box-shadow: var(--shadow); overflow: hidden;
-  }
-  .cite .bar {
-    display: flex; align-items: center; justify-content: space-between;
-    padding: 9px 14px; border-bottom: 1px solid var(--line-soft); background: var(--panel-2);
-    font: 11px ui-monospace, Menlo, monospace; color: var(--ink-dim);
-  }
-  .cite button {
-    appearance: none; border: 1px solid var(--line); background: var(--panel); color: var(--ink);
-    border-radius: 6px; padding: 4px 10px; font-size: 11.5px; cursor: pointer;
-  }
-  .cite button:hover { border-color: var(--ghost); }
-  .cite pre { margin: 0; padding: 16px 18px; overflow-x: auto; font: 12px/1.65 ui-monospace, Menlo, monospace; }
-
-  /* limitations */
-  .limit {
-    margin: 24px 0 0; padding: 20px 22px; border: 1px solid var(--line-soft);
-    border-left: 3px solid var(--a3); border-radius: 10px; background: var(--panel);
-  }
-  .limit h3 { margin: 0 0 8px; font-size: 15px; font-weight: 600; }
-  .limit p { margin: 0 0 10px; font-size: 13.5px; color: var(--ink-dim); max-width: 80ch; }
-  .limit p:last-child { margin-bottom: 0; }
-
   footer.pagefoot {
     margin: 92px 0 0; border-top: 1px solid var(--line-soft); padding: 30px 0 60px;
     color: var(--ink-dim); font-size: 12.5px;
@@ -557,11 +349,7 @@
 <nav id="top"><div class="inner">
   <a class="brand" href="#"><img src="logo.png" alt=""><em>Nav</em>Safe-∞</a>
   <div class="links">
-    <a href="#overview">Overview</a>
     <a href="#taxonomy">Taxonomy map</a>
-    <a href="#coverage">Coverage</a>
-    <a href="#protocol">Protocol</a>
-    <a href="#results">Results</a>
   </div>
   <button id="themebtn" title="Toggle light / dark" aria-label="Toggle light / dark">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
@@ -584,6 +372,7 @@
       <span class="au">Yuxin Bao<sup>2,*</sup></span>,
       <span class="au">Luobin Wang<sup>1,†</sup></span>,
       <span class="au">Seth Z. Zhao<sup>2,†</sup></span>,
+      <span class="au">Ziyang Leng<sup>2</sup></span>,
       <span class="au">Yu Zeng<sup>3</sup></span>,
       <span class="au">Rowan McAllister<sup>3</sup></span>,
       <span class="au">Henrik Christensen<sup>1</sup></span>,
@@ -612,227 +401,6 @@
 </header>
 
 <main>
-<!-- =====================  OVERVIEW  ===================== -->
-<section id="overview" class="wrap">
-  <div class="kpis">
-    <div class="kpi"><div class="n">500</div><div class="l">scenarios</div><div class="s">≥ 10 in every leaf</div></div>
-    <div class="kpi"><div class="n">28</div><div class="l">taxonomy leaves</div><div class="s">RoadSafe365 outcomes</div></div>
-    <div class="kpi"><div class="n">6</div><div class="l">safety capabilities</div><div class="s">scored by success rate</div></div>
-    <div class="kpi"><div class="n">73</div><div class="l">nuPlan scenario types</div><div class="s">the mining vocabulary</div></div>
-    <div class="kpi"><div class="n">83</div><div class="l">constructed scenarios</div><div class="s">the 9 leaves mining cannot reach</div></div>
-  </div>
-
-  <div class="sechead">
-    <p class="eyebrow">Abstract</p>
-    <h2 class="sec serif">Driving safety depends on the states a policy induces, not only on the trajectory it predicts.</h2>
-  </div>
-  <div class="abstract prose">
-    <p>End-to-end driving policies have progressed rapidly on low-cost open-loop benchmarks, yet
-    driving safety depends on the states a policy induces and the responses it elicits. Open-loop
-    evaluation cannot reveal compounding errors, failure recovery, or interactive behavior. Existing
-    closed-loop benchmarks restore this feedback, but CARLA-based platforms introduce an
-    observation-domain gap, while photorealistic platforms do not organize scenario coverage around
-    an explicit traffic-safety taxonomy. It therefore remains unclear which safety failures current
-    policies exhibit under photorealistic closed-loop execution.</p>
-    <p>We introduce <b>NavSafe-∞</b>, a benchmark that combines closed-loop execution, photorealistic
-    observations, and taxonomy-grounded safety-critical events. Guided by the 28 outcome leaves of
-    RoadSafe365, we screen the nuPlan test set for relevant scenarios and supplement selected
-    uncovered taxonomy cells through 3D-asset or dynamic-actor insertion; every admitted scenario is
-    manually verified. <b>NuRec</b> reconstructs each event as an editable environment, and
-    <b>NexusSim</b> executes policies under an event-based, semi-reactive protocol. NavSafe-∞ reports
-    four event-level metrics and success rates across six safety capabilities. NavSafe-∞ provides a
-    controlled simulator stress test of closed-loop behavior, not an estimate of real-world crash
-    risk.</p>
-  </div>
-
-  <div class="sechead">
-    <p class="eyebrow">Three defining properties</p>
-    <h2 class="sec serif">What NavSafe-∞ puts in one place</h2>
-  </div>
-  <div class="pillars">
-    <div class="pillar" style="--pc: var(--a1)">
-      <span class="ix">01 / CLOSED LOOP</span>
-      <h3>Policy-induced observations</h3>
-      <p>Each scenario runs as a bounded closed-loop event: the simulator repeatedly renders the
-      observation the policy's own actions produced, and advances focal traffic in a semi-reactive
-      mode — non-focal agents replay the log, focal actors respond through IDM or a scenario
-      controller.</p>
-      <span class="who">NexusSim</span>
-    </div>
-    <div class="pillar" style="--pc: var(--a6)">
-      <span class="ix">02 / PHOTOREALISTIC</span>
-      <h3>Real driving windows, made editable</h3>
-      <p>Selected real nuPlan windows are reconstructed as neural environments, so observations stay
-      in the domain the policies were trained on while remaining editable enough to insert assets and
-      actors.</p>
-      <span class="who">NuRec</span>
-    </div>
-    <div class="pillar" style="--pc: var(--a5)">
-      <span class="ix">03 / TAXONOMY-GROUNDED</span>
-      <h3>Coverage you can audit</h3>
-      <p>Scenario coverage is organized by the 28 outcome leaves of a real-world traffic-safety
-      taxonomy, each leaf assigned to exactly one primary capability. Failures are reported by leaf,
-      by capability, and by mined / inserted provenance.</p>
-      <span class="who">RoadSafe365</span>
-    </div>
-  </div>
-
-  <div class="sechead">
-    <p class="eyebrow">The evaluation gap</p>
-    <h2 class="sec serif">Existing benchmarks cover two of the three axes</h2>
-    <p class="sub">Open-loop benchmarks use real observations but omit sequential feedback.
-    CARLA-based closed-loop benchmarks restore feedback with synthetic imagery. Photorealistic
-    closed-loop platforms restore both, but their scenario suites are not organized around an
-    explicit safety taxonomy with fixed behavior-wise coverage.</p>
-  </div>
-  <div class="scrollx"><table class="matrix">
-    <thead><tr>
-      <th>Benchmark family</th>
-      <th class="c">Closed-loop<br>feedback</th>
-      <th class="c">Photorealistic<br>observations</th>
-      <th class="c">Taxonomy-grounded<br>coverage</th>
-    </tr></thead>
-    <tbody>
-      <tr><td>Open-loop<small>nuScenes, NAVSIM, NAVSIM v2</small></td>
-          <td class="c no">—</td><td class="c yes">✓</td><td class="c no">—</td></tr>
-      <tr><td>CARLA closed-loop<small>Bench2Drive, Fail2Drive</small></td>
-          <td class="c yes">✓</td><td class="c no">—</td><td class="c mid">partial</td></tr>
-      <tr><td>Photorealistic closed-loop<small>HUGSIM, DriveArena</small></td>
-          <td class="c yes">✓</td><td class="c yes">✓</td><td class="c no">—</td></tr>
-      <tr class="us"><td>NavSafe-∞<small>this work</small></td>
-          <td class="c yes">✓</td><td class="c yes">✓</td><td class="c yes">✓</td></tr>
-    </tbody>
-  </table></div>
-  <p class="mkey"><span><span class="yes">✓</span> provided</span>
-     <span><span class="mid">partial</span> ability-level grouping, not an external safety taxonomy</span>
-     <span><span class="no">—</span> not provided</span></p>
-
-  <div class="sechead">
-    <p class="eyebrow">Pipeline</p>
-    <h2 class="sec serif">From nuPlan logs to capability-level scores</h2>
-  </div>
-  <figure class="fig">
-    <div class="board">
-      <svg viewBox="0 34 1180 262" role="img" aria-label="NavSafe-∞ pipeline: screening, verification, insertion, reconstruction, closed-loop rollout, scoring">
-        <!-- stage boxes -->
-        <g>
-          <rect class="sv-box" x="8"   y="52" width="206" height="96" rx="9"/>
-          <rect class="sv-box" x="252" y="52" width="206" height="96" rx="9"/>
-          <rect class="sv-box" x="496" y="52" width="206" height="96" rx="9"/>
-          <rect class="sv-box" x="740" y="52" width="206" height="96" rx="9"/>
-          <rect class="sv-box" x="984" y="52" width="188" height="96" rx="9"/>
-        </g>
-        <g class="sv-k">
-          <text x="24"   y="76">01 · SOURCE</text>
-          <text x="268"  y="76">02 · SCREEN</text>
-          <text x="512"  y="76">03 · RECONSTRUCT</text>
-          <text x="756"  y="76">04 · EXECUTE</text>
-          <text x="1000" y="76">05 · SCORE</text>
-        </g>
-        <g class="sv-t">
-          <text x="24"   y="102">nuPlan test logs</text>
-          <text x="268"  y="102">Taxonomy screening</text>
-          <text x="512"  y="102">NuRec environment</text>
-          <text x="756"  y="102">NexusSim rollout</text>
-          <text x="1000" y="102">Event metrics</text>
-        </g>
-        <g class="sv-s">
-          <text x="24"   y="122">72 logs · 4 maps · 421 scenes</text>
-          <text x="24"   y="138">real sensor + map context</text>
-          <text x="268"  y="122">73 scenario types → 28 leaves</text>
-          <text x="268"  y="138">every scenario human-verified</text>
-          <text x="512"  y="122">editable neural reconstruction</text>
-          <text x="756"  y="122">event contract: trigger, goal,</text>
-          <text x="756"  y="138">predicates, budget, trace</text>
-          <text x="1000" y="122">DS · SR · DE · Comf.</text>
-          <text x="1000" y="138">+ six-capability ASR</text>
-        </g>
-        <text class="sv-s" x="512" y="138">4 × 5 s clips per 20 s window</text>
-
-        <!-- arrows -->
-        <g class="sv-arrow">
-          <path d="M214 100 h30"/><path d="M238 95 l7 5 -7 5"/>
-          <path d="M458 100 h30"/><path d="M482 95 l7 5 -7 5"/>
-          <path d="M702 100 h30"/><path d="M726 95 l7 5 -7 5"/>
-          <path d="M946 100 h30"/><path d="M970 95 l7 5 -7 5"/>
-        </g>
-
-        <!-- insertion branch for uncovered taxonomy cells -->
-        <rect class="sv-box" x="252" y="196" width="450" height="88" rx="9" stroke-dasharray="5 5"/>
-        <text class="sv-k" x="268" y="220">UNCOVERED TAXONOMY CELLS</text>
-        <text class="sv-t" x="268" y="242">3D-asset / dynamic-actor insertion</text>
-        <text class="sv-s" x="268" y="260">constructed episode e⁺ paired with a reference e⁰ that keeps</text>
-        <text class="sv-s" x="268" y="274">route, background, initialization and non-focal traffic fixed</text>
-        <g class="sv-dash">
-          <path d="M355 148 v48"/><path d="M350 190 l5 6 5 -6"/>
-          <path d="M600 196 v-48"/><path d="M595 154 l5 -6 5 6"/>
-        </g>
-
-        <!-- semi-reactive note -->
-        <text class="sv-s" x="756" y="176">semi-reactive traffic · log-replay warm-up</text>
-      </svg>
-    </div>
-    <figcaption><b>Curation → reconstruction → closed-loop execution → scoring.</b>
-    Scenarios are mined from the nuPlan test set under the taxonomy and manually verified; taxonomy
-    cells that log mining cannot populate are instantiated by inserting a static 3D asset, a dynamic
-    actor, or both, always paired with a reference episode that isolates the inserted factor.</figcaption>
-  </figure>
-
-  <div class="sechead">
-    <p class="eyebrow">Constructed scenario · insertion pipeline in action</p>
-    <h2 class="sec serif">Two policy rollouts on an inserted actor</h2>
-    <p class="sub">Both clips place a non-reactive actor into the same reconstructed host scene via
-    <code class="m">dart_out</code> / crossing-actor insertion (Fig. above, stage 02–04), then run
-    the same closed-loop DrivoR policy against it. Left: BEV plan and target region. Right: the
-    NuRec-rendered ego camera the policy actually sees.</p>
-  </div>
-  <div class="inscards">
-    <div class="inscard" id="insPed">
-      <div class="frame">
-        <div class="status">loading clip…</div>
-        <video loop muted playsinline autoplay preload="auto"
-               poster="posters/near_pedestrian_inserted-walkped01.jpg"
-               src="clips_5s_stitched/near_pedestrian_inserted-walkped01.mp4"
-               aria-label="Inserted pedestrian scenario, DrivoR policy, collision"></video>
-      </div>
-      <div class="body">
-        <div class="ihead">
-          <span class="itag">R-1 · Pedestrian-Involved</span>
-          <span class="iverdict fail">Collision</span>
-        </div>
-        <h4>Pedestrians crossing near a shared-space path</h4>
-        <p>Two pedestrians are inserted on a path that intersects the ego's route. DrivoR continues
-        near its commanded speed through the conflict and the rollout terminates in an
-        ego-attributable collision — the kind of fallback-coverage failure RQ2 diagnoses (§4.2).</p>
-        <p class="imeta">policy: DrivoR · outcome: CRASH · leaf: R-1</p>
-      </div>
-    </div>
-    <div class="inscard" id="insDog">
-      <div class="frame">
-        <div class="status">loading clip…</div>
-        <video loop muted playsinline autoplay preload="auto"
-               poster="posters/animal_dart_out-dogcross01.jpg"
-               src="clips_5s_stitched/animal_dart_out-dogcross01.mp4"
-               aria-label="Inserted dog dart-out scenario, DrivoR policy, no collision"></video>
-      </div>
-      <div class="body">
-        <div class="ihead">
-          <span class="itag">R-4 · Animal-Involved</span>
-          <span class="iverdict ok">No collision</span>
-        </div>
-        <h4>A dog dart-out from the roadside verge</h4>
-        <p>R-4 has no nuPlan scenario type at all, so this event exists only through insertion: a
-        dog is baked on a <code class="m">dart_out</code> trajectory — holding the verge, then
-        sweeping across the lane and clear of the far edge (Plan §7). DrivoR slows and lets it pass.</p>
-        <p class="imeta">policy: DrivoR · outcome: success · leaf: R-4</p>
-      </div>
-    </div>
-  </div>
-  <p class="gnote">Both clips share one host scene and one policy, so the only varying factor is the
-  inserted actor — the same reference-pairing discipline the scene-editing pipeline uses to isolate
-  what a failure is actually caused by. Click a frame to pause.</p>
-</section>
-
 <!-- =====================  TAXONOMY MAP  ===================== -->
 <section id="taxonomy">
   <div class="wrap">
@@ -866,133 +434,6 @@
 
 <!-- The standalone scenario gallery is gone: every clip it held is reachable by
      opening its scenario type in the taxonomy map above. -->
-
-<!-- =====================  COVERAGE  ===================== -->
-<section id="coverage" class="wrap">
-  <div class="sechead">
-    <p class="eyebrow">Statistics &amp; coverage</p>
-    <h2 class="sec serif">Where the 500 come from</h2>
-    <p class="sub">Coverage is counted in <b>taxonomy leaves</b>, not scenario types: a type is
-    the tag a leaf is populated <i>through</i>, never the thing being measured. Most leaves fill
-    themselves by mining those tags; the rest have to be built.</p>
-  </div>
-  <div class="reconstat">
-    <div><span class="k">417</span><span class="l">mined · 19 leaves, ~22 each</span></div>
-    <div><span class="k">83</span><span class="l">constructed · 9 leaves</span></div>
-  </div>
-  <p class="sub">The nine that cannot be mined: six have no nuPlan type at all
-  (<code class="m">C-10 V-10 V-11 R-3 R-4 I-3</code>) and three are too scarce to reach ten
-  (<code class="m">C-7 V-8 R-2</code>). Their episodes are <b>constructed</b> by scene editing —
-  an asset placed and moved on a reconstructed host scene, frozen as a rebuildable recipe.</p>
-</section>
-
-<!-- =====================  PROTOCOL  ===================== -->
-<section id="protocol" class="wrap">
-  <div class="sechead">
-    <p class="eyebrow">Evaluation protocol</p>
-    <h2 class="sec serif">Four event-level metrics, six capability scores</h2>
-    <p class="sub">Each scenario runs as a bounded closed-loop event whose contract specifies its
-    trigger, goal region, safety predicates, termination order, time budget, and trace evidence. A
-    short log-replay warm-up initializes the policy history before scoring; the policy receives only
-    its declared sensor and navigation inputs. All metric thresholds are frozen before test
-    evaluation.</p>
-  </div>
-  <div class="metrics">
-    <div class="metric"><span class="abbr">DS</span><h4>Driving Score</h4>
-      <p>Event completion multiplied by declared infraction penalties, averaged over valid trials.</p></div>
-    <div class="metric"><span class="abbr">SR</span><h4>Success Rate</h4>
-      <p>1 if the event reaches its goal within budget without a disallowed infraction, else 0.</p></div>
-    <div class="metric"><span class="abbr">DE</span><h4>Driving Efficiency</h4>
-      <p>Checkpoint-wise ratio of ego speed to nearby-traffic speed; not reported when that reference is undefined.</p></div>
-    <div class="metric"><span class="abbr">Comf.</span><h4>Comfortness</h4>
-      <p>Fraction of temporal segments inside the nuPlan-derived acceleration, jerk, yaw-rate and yaw-acceleration bounds.</p></div>
-  </div>
-  <div class="formula">
-    <b>DS<sub>i</sub></b> = EC<sub>i</sub> · ∏<sub>e∈E<sub>i</sub></sub> p<sub>e</sub>&nbsp;&nbsp;&nbsp;
-    <b>DS</b> = (100 / N<sub>v</sub>) · Σ<sub>i∈V</sub> DS<sub>i</sub>&nbsp;&nbsp;&nbsp;
-    with EC<sub>i</sub> ∈ [0,1], p<sub>e</sub> ∈ [0,1]<br>
-    <b>ASR<sub>k</sub></b> = 100 · Σ<sub>i∈V<sub>k</sub></sub> SR<sub>i</sub> / |V<sub>k</sub>|,&nbsp;
-    k ∈ {LF, RC, RWN, TCC, VRU, IDTA}&nbsp;&nbsp;&nbsp; V<sub>k</sub> = I<sub>k</sub> ∩ V<br>
-    reported together with each denominator |V<sub>k</sub>|, the macro-average ASR, and the
-    worst-capability score ASR<sub>min</sub>
-  </div>
-  <p class="sub" style="margin-top:16px">ASR depends only on binary success — progress, efficiency,
-  comfort and partial penalties cannot increase it. Each event is assigned to one primary capability
-  <i>before</i> policy evaluation.</p>
-  <div class="caps" id="caps"></div>
-</section>
-
-<!-- =====================  RESULTS  ===================== -->
-<section id="results" class="wrap">
-  <div class="sechead">
-    <p class="eyebrow">Leaderboard</p>
-    <h2 class="sec serif">Photorealistic closed-loop results
-      <span class="pendingbadge"><i></i>evaluation in progress</span></h2>
-    <p class="sub">Public checkpoints spanning offline IL/SFT, offline proxy-reward RL fine-tuning,
-    and online closed-loop RL, plus a privileged solvability reference. Checkpoints are evaluated
-    frozen, only after their NexusSim adapters pass observation, coordinate-frame, horizon and
-    tracker tests. Numbers appear here once the test manifest is unfrozen.</p>
-  </div>
-  <div class="tablecard">
-    <table class="lbtab">
-      <thead>
-        <tr class="grp">
-          <th rowspan="2">Policy</th><th rowspan="2">Regime</th>
-          <th class="sep" colspan="4">Event metrics</th>
-          <th class="sep" colspan="6">Ability-wise success rate</th>
-          <th class="sep" colspan="2">ASR summary</th>
-        </tr>
-        <tr>
-          <th class="sep">DS</th><th>SR</th><th>DE</th><th>Comf.</th>
-          <th class="sep">LF</th><th>RC</th><th>RWN</th><th>TCC</th><th>VRU</th><th>IDTA</th>
-          <th class="sep">Avg.</th><th>Min.</th>
-        </tr>
-      </thead>
-      <tbody id="lbbody"></tbody>
-    </table>
-  </div>
-  <p class="gnote">Avg./Min. are the macro-average and minimum ASR. <b>★</b> privileged reference,
-  not ranked — PDM-Closed accesses simulator state. <b>†</b> released matched SFT/IL–RLFT pair.
-  <b>‡</b> final RL checkpoint only, so it supports final-policy comparison, not an estimate of an RL
-  treatment effect. NAVSIM v1 PDMS and NAVSIM v2 EPDMS are labeled by devkit and split and are never
-  pooled as one scale.</p>
-
-  <div class="sechead">
-    <p class="eyebrow">Research questions</p>
-    <h2 class="sec serif">What the benchmark is asked to answer</h2>
-  </div>
-  <div class="pillars" style="grid-template-columns: 1fr 1fr">
-    <div class="pillar" style="--pc: var(--a4)">
-      <span class="ix">RQ1</span>
-      <h3>What does NavSafe-∞ expose beyond open-loop evaluation?</h3>
-      <p>Terminal reasons — ego-attributable collision, roadway departure, rule violation, deadlock,
-      timeout, runtime failure, reconstruction invalidity — reported by leaf, capability and
-      provenance; paired e⁰/e⁺ failure flips isolate sensitivity to the inserted factor. RQ1 also
-      audits the benchmark itself: rejection flow, capability-mapping agreement, scorer audit
-      precision/recall, oracle solvability and reconstruction-invalid rates.</p>
-    </div>
-    <div class="pillar" style="--pc: var(--a2)">
-      <span class="ix">RQ2</span>
-      <h3>Does post-training narrow the OL–CL gap?</h3>
-      <p>ReCogDrive and MTDrive provide the controlled contrasts: architecture and scale are fixed
-      within each released pair, and per-seed RLFT-minus-SFT changes are reported with 95% intervals.
-      Improvements in SR or ASR support safety transfer; improvements confined to DS, DE or Comf.
-      indicate better quality or conservatism, not safer capability.</p>
-    </div>
-  </div>
-
-  <div class="limit">
-    <h3>Scope and limitations</h3>
-    <p>NavSafe-∞ provides validity evidence within the declared simulator, not proof of a real-world
-    safety construct. It over-samples rare and constructed hazards and has no exposure model, so its
-    score is neither a crash-rate estimate nor an on-road safety certification.</p>
-    <p>The simulation-to-reality gap remains the principal limitation. Photorealistic rendering does
-    not guarantee correct sensor noise, geometry, contact physics or human behavior; novel viewpoints
-    can expose reconstruction artifacts, inserted assets can mismatch illumination, and scripted
-    actors can react unlike people. Quality envelopes, paired references, provenance stratification,
-    replay ablations and sensitivity analyses reduce this ambiguity but cannot remove it.</p>
-  </div>
-</section>
 
 <footer class="pagefoot"><div class="wrap">
   <p>Dashed leaves have no nuPlan scenario type, so no tag reaches them. Six are
@@ -1483,19 +924,8 @@ applyStats();
 addEventListener("resize", () => { drawWires(); if (pinned) pinned.click(), pinned = null; });
 new ResizeObserver(() => drawWires()).observe(board);
 
-// ---- insertion-showcase cards: only two clips, so they autoplay on load
-// (muted, looping) instead of the taxonomy map's click-to-load pattern.
-// Click still toggles pause/resume.
-for (const id of ["insPed", "insDog"]) {
-  const card = document.getElementById(id);
-  const v = card.querySelector("video");
-  v.addEventListener("loadeddata", () => card.classList.add("loaded"), { once: true });
-  v.addEventListener("click", () => { v.paused ? v.play().catch(() => {}) : v.pause(); });
-}
-
 /* =====================================================================
-   Page furniture: theme, hero strip, capability cards, coverage table,
-   leaderboard, nav scroll-spy.
+   Page furniture: theme, hero strip, nav scroll-spy.
    ===================================================================== */
 
 // ---- theme toggle. The stylesheet already follows prefers-color-scheme; the
@@ -1514,11 +944,6 @@ themebtn.addEventListener("click", e => {
   drawWires();
 });
 
-// ---- ability lookup for anything that needs a type's capability colour
-const leafOfType = {};
-for (const l of LEAVES) for (const t of l.types) leafOfType[t] = l;
-const abilityOfType = t => ABILITIES.find(a => a.id === (leafOfType[t] || {}).ab);
-
 // ---- hero strip: five full-length looping clips, autoplaying muted on load.
 // Poster stays as the video's poster attribute so the frame is never blank
 // while it loads.
@@ -1529,41 +954,6 @@ document.getElementById("heroStrip").innerHTML = HERO.map(t =>
      autoplay muted loop playsinline preload="auto"
      aria-label="Reconstructed ${t.replace(/_/g, " ")} scenario"></video>
    <figcaption>${t}</figcaption></figure>`).join("");
-
-// ---- capability cards (protocol section) — same six abilities as the map
-document.getElementById("caps").innerHTML = ABILITIES.map(a => `
-  <div class="cap" style="--ac: var(${a.varc})">
-    <span class="cid">${a.id} · ${a.key}</span>
-    <h4>${a.name}</h4>
-    <p>${a.def}</p>
-    <span class="anchor">${a.anchor}</span>
-  </div>`).join("");
-
-// ---- leaderboard scaffold. Values stay "—" until the frozen test manifest is
-// evaluated; the rows exist so the tracked checkpoint set is public now.
-const LB = [
-  ["group", "Privileged reference"],
-  ["PDM-Closed ★", "Oracle"],
-  ["group", "Offline IL / SFT controls"],
-  ["LTF", "IL"],
-  ["DiffusionDrive", "IL"],
-  ["DrivoR", "IL"],
-  ["ReCogDrive–2B–IL †", "SFT"],
-  ["MTDrive–SFT †", "SFT"],
-  ["group", "Offline proxy-reward RLFT"],
-  ["ReCogDrive–2B–RL †", "RLFT"],
-  ["MTDrive–mtGRPO †", "RLFT"],
-  ["AutoVLA ‡", "RLFT"],
-  ["group", "Online closed-loop RL"],
-  ["MindDrive–3B ‡", "CL-RL"],
-];
-document.getElementById("lbbody").innerHTML = LB.map(row =>
-  row[0] === "group"
-    ? `<tr class="group"><td colspan="14">${row[1]}</td></tr>`
-    : `<tr><td class="name">${row[0]}</td><td class="regime">${row[1]}</td>` +
-      [0,1,2,3,4,5,6,7,8,9,10,11].map(i =>
-        `<td class="pending${[0,4,10].includes(i) ? " sep" : ""}">—</td>`).join("") +
-      `</tr>`).join("");
 
 // ---- nav scroll-spy
 const navLinks = [...document.querySelectorAll("nav#top .links a")];
