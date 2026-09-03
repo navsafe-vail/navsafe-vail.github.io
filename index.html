@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>NavSafe-∞ — Benchmarking Closed-Loop Driving Safety in Photorealistic Environments</title>
-<meta name="description" content="NavSafe-∞ is a closed-loop autonomous-driving benchmark that combines photorealistic NuRec environments with a traffic-safety taxonomy: 28 outcome leaves, 73 nuPlan scenario types, six safety capabilities.">
+<meta name="description" content="NavSafe-∞ is a closed-loop autonomous-driving benchmark that combines photorealistic NuRec environments with a traffic-safety taxonomy: 28 outcome leaves, 73 nuPlan scenario types, four RoadSafe365 categories.">
 <meta property="og:title" content="NavSafe-∞ — Benchmarking Closed-Loop Driving Safety in Photorealistic Environments">
 <meta property="og:description" content="Closed-loop execution, photorealistic observations, and taxonomy-grounded safety-critical events in one benchmark.">
 <meta property="og:type" content="website">
@@ -17,11 +17,11 @@
 <meta name="theme-color" content="#191A1C" media="(prefers-color-scheme: dark)">
 <style>
   /* ---------------------------------------------------------------------
-     Palette. The six ability hues are the page's only categorical scale:
-     hue-locked across light and dark, and re-stepped so that every adjacent
-     pair clears the CVD separation and normal-vision floors (the previous
-     set collapsed A2/A3 under protanopia at deltaE 4.2). Identity is never
-     carried by colour alone — every mark keeps its A1..A6 label.
+     Palette. The six hues form a CVD-safe categorical scale: hue-locked
+     across light and dark, re-stepped so every adjacent pair clears the
+     separation and normal-vision floors. The four RoadSafe365 category
+     hues are drawn from it (a1 / a3 / a5 / a6). Identity is never carried
+     by colour alone — every mark keeps its TC / TV / VRUC / TI label.
      ------------------------------------------------------------------ */
   :root {
     --bg: #F6F5F2; --panel: #FFFFFF; --panel-2: #FBFAF8;
@@ -31,7 +31,6 @@
     --a4: #906EB7; --a5: #A7405E; --a6: #20A39D;
     --wire: #CFCBC2;
     --shadow: 0 1px 2px rgba(35,34,31,.05), 0 8px 24px -16px rgba(35,34,31,.28);
-    --typew: 480px;
     --maxw: 1080px;
     color-scheme: light;
   }
@@ -68,7 +67,7 @@
   a { color: inherit; }
   .serif { font-family: ui-serif, Georgia, "Iowan Old Style", "Times New Roman", serif; }
   .wrap { max-width: var(--maxw); margin: 0 auto; padding: 0 28px; }
-  .wrap-wide { max-width: 1360px; margin: 0 auto; padding: 0 28px; }
+  .wrap-wide { max-width: none; margin: 0 auto; padding: 0 28px; }
   section { scroll-margin-top: 68px; }
 
   /* ---------- top nav ---------- */
@@ -236,15 +235,15 @@
   svg#wires path.on { stroke-width: 2.2; opacity: 1; }
   svg#wires path.off { opacity: 0.08; }
 
-  /* leaf labels are short and fixed-length; the type names are the longest strings
-     on the page, so the slack belongs to the last column, not the middle one. */
-  .cols { display: grid; grid-template-columns: 250px 300px minmax(440px, 1fr); gap: 72px; position: relative; }
+  /* all three columns stretch with the window; the minimums keep the narrow-
+     screen horizontal scroll usable, and the type column gets the most slack
+     because type names are the longest strings on the page. */
+  .cols { display: grid; grid-template-columns: minmax(250px, 2fr) minmax(300px, 2.5fr) minmax(430px, 3.5fr); gap: 72px; position: relative; }
   .colhead {
     font-size: 11px; font-weight: 700; letter-spacing: 0.12em; text-transform: uppercase;
     color: var(--ink-dim); margin: 0 0 10px;
   }
   .col { display: flex; flex-direction: column; }
-  .colhead.headT { display: flex; justify-content: space-between; width: var(--typew); padding-left: 10px; }
 
   /* abilities */
   .ability {
@@ -278,9 +277,10 @@
   }
   .leaf.empty { border-style: dashed; background: transparent; }
   .leaf.empty b { color: var(--ink-dim); font-weight: 500; }
-  /* mined types exist, but none of them occurs in navhard under this convention */
+  /* types exist, but none of them occurs in navhard under this convention */
   .leaf.novh .dot { background: none; box-shadow: inset 0 0 0 1.5px var(--ac); }
-  .leaf.novh .n { color: var(--a5); font-weight: 700; }
+  /* allocation short of the 10-scenario target (V-8) */
+  .leaf.short .n { color: var(--a5); font-weight: 700; }
 
   /* types */
   .typegroup { margin-bottom: 4px; }
@@ -289,7 +289,7 @@
     color: var(--ink); padding: 1.5px 8px 1.5px 10px; border-left: 2px solid var(--wire);
     cursor: pointer; white-space: nowrap; transition: opacity .12s, border-color .12s, background .12s;
     border-radius: 0 3px 3px 0; display: flex; align-items: center; gap: 8px;
-    width: var(--typew);
+    width: 100%;
   }
   .type:hover { background: var(--line-soft); }
   .type .tn { flex: none; }
@@ -298,21 +298,9 @@
     display: inline-block; transition: transform .12s;
   }
   .type.hasclip.open .tn::after { transform: rotate(90deg); }
-  /* the bar track sits flush right so every bar starts at the same x, whatever
-     the type name's length — otherwise magnitudes are impossible to compare. */
-  .type .bar {
-    flex: none; margin-left: auto; width: 58px; height: 4px; border-radius: 2px;
-    background: color-mix(in srgb, var(--ink) 9%, transparent); overflow: hidden;
-  }
-  .type .bar i { display: block; height: 100%; border-radius: 2px; background: var(--ac); transition: width .18s; }
-  .type .cnt {
-    flex: none; width: 26px; text-align: right; color: var(--ink-dim);
-    font-variant-numeric: tabular-nums;
-  }
   /* absent from navhard under the selected convention */
   .type.zero { border-left-style: dotted; }
-  .type.zero .tn, .type.zero .cnt { color: var(--ink-dim); }
-  .type.zero .bar { opacity: 0.4; }
+  .type.zero .tn { color: var(--ink-dim); }
 
   /* scenario clips inside the map */
   .clippanel { display: none; margin: 4px 0 8px 10px; width: 100%; max-width: 560px; }
@@ -364,7 +352,7 @@
     <p class="wordmark serif"><img src="logo.png" alt="NavSafe-∞ logo"><span><em>Nav</em>Safe-∞</span></p>
     <h1 class="title serif">Benchmarking Closed-Loop Driving Safety in Photorealistic Environments
       <span class="lede">A closed-loop benchmark whose scenario coverage is organized by a real-world
-      traffic-safety taxonomy — 28 outcome leaves, 73 nuPlan scenario types, six safety capabilities,
+      traffic-safety taxonomy — 28 outcome leaves, 73 nuPlan scenario types, four RoadSafe365 categories,
       executed on photorealistic reconstructions.</span>
     </h1>
     <p class="authors">
@@ -406,12 +394,14 @@
   <div class="wrap">
     <div class="sechead">
       <p class="eyebrow">Interactive figure · scenario coverage</p>
-      <h2 class="sec serif">Ability map — scenario types → taxonomy leaves → capabilities</h2>
-      <p class="sub">73 mined nuPlan scenario types → 28 taxonomy leaves → 6 capabilities. Every leaf
-      has exactly one capability home; every type has exactly one leaf.</p>
+      <h2 class="sec serif">Taxonomy map — scenario types → taxonomy leaves → RoadSafe365 categories</h2>
+      <p class="sub">73 mined nuPlan scenario types → 28 taxonomy leaves → 4 RoadSafe365 categories.
+      Every leaf has exactly one parent category; every type has exactly one leaf.</p>
       <p class="maphint">Hover or tap anything to trace its connections. Click to pin, click again to
-      release. Scenario types marked <b>▸</b> have a rendered clip — click to expand it. The bar and
-      number on each type are how many of the <b>421 navhard scenes</b> contain it.</p>
+      release. Scenario types marked <b>▸</b> have a rendered clip — click to expand it. Hover a
+      type for how many of the <b>421 navhard scenes</b> contain it under each counting convention.
+      The badge on each leaf is its <b>allocated scenario count</b> against the ≥ 10-per-leaf mining
+      target — hover a leaf for where its scenarios come from.</p>
     </div>
     <div class="statstrip" id="strip"></div>
     <p class="convnote" id="convnote"></p>
@@ -422,11 +412,9 @@
     <div id="wrap"><div id="board">
       <svg id="wires"></svg>
       <div class="cols">
-        <div class="col" id="colA"><div class="colhead">Multiabilities (scored by SR)</div></div>
+        <div class="col" id="colA"><div class="colhead">RoadSafe365 categories (scored by AS)</div></div>
         <div class="col" id="colL"><div class="colhead">Taxonomy leaves (28)</div></div>
-        <div class="col" id="colT"><div class="colhead headT">
-          <span>nuPlan scenario types (73)</span><span id="scenehead">navhard scenes</span>
-        </div></div>
+        <div class="col" id="colT"><div class="colhead">nuPlan scenario types (73)</div></div>
       </div>
     </div></div>
   </div>
@@ -436,18 +424,25 @@
      opening its scenario type in the taxonomy map above. -->
 
 <footer class="pagefoot"><div class="wrap">
-  <p>Dashed leaves have no nuPlan scenario type, so no tag reaches them. Six are
-  <b>constructed</b> by scene editing (<code>C-10 V-10 V-11 R-3 R-4 I-3</code>);
-  <code>C-9</code> is not — it is defined by surface and lighting rather than by an actor, and is
-  populated by mining. <code>C-8</code> is context-only: <code>on_carpark</code> supplies the
-  setting, not the event. Source:
+  <p>Leaf badges are the scenario allocation against the <b>≥ 10-per-leaf target</b>:
+  27 of 28 leaves reach it — 270 scenarios allocated, each credited to exactly one leaf.
+  19 leaves fill from the reviewed nuPlan mining pool (417 scenarios reviewed, 178 qualify at
+  <code>Keep = Y</code>; assignment solved as an exact bipartite allocation maximizing leaves
+  at target). Eight leaves with no usable pool — <code>C-7 C-10 V-10 V-11 R-2 R-3 R-4 I-3</code> —
+  take their membership from the 81-scenario for-editing queue built by scene editing;
+  <code>C-9</code> has no nuPlan precursor at all and its ten come by escalation from
+  V-4 / C-6 review. <b>V-8 Illegal U-Turn</b> has no candidate that survives review and stands
+  at 0 / 10. Dashed leaves have no nuPlan scenario type, so no tag reaches them;
+  <code>C-8</code> is context-only — <code>on_carpark</code> supplies the setting, not the event.
+  Sources: <code>NavSafe_Scenario_Mining_Status_full_v2</code>
+  (<code>navsafe_scenario_review-8.xlsx</code>, reconciled); taxonomy structure:
   <code>docs/research/Navsafe_taxonomy_short.md</code> §§1–4, §8.2.</p>
 
   <p>Counts are <b>scenarios, not frames</b>: a type hit on several frames of one scene counts once,
   and a scene can hold several types — so the numbers overlap and never sum to 421. That is why
-  leaves and capabilities report <i>how many of their types occur</i> rather than a scene total.
-  Under <code>s44</code>, <b>C-7 Head-On</b> and <b>V-8 Illegal U-Turn</b> are mined leaves whose
-  every type has zero navhard scenes. Statistics source: <code>docs/navhard_scenario_stats.md</code>
+  leaf tooltips and categories report <i>how many of their types occur</i> rather than a scene
+  total. Under <code>s44</code>, every type of <b>C-7 Head-On</b> and <b>V-8 Illegal U-Turn</b>
+  has zero navhard scenes (hollow dots). Statistics source: <code>docs/navhard_scenario_stats.md</code>
   (computed 2026-08-04) from <code>navhard_md_logs</code> descriptors + the nuPlan
   <code>scenario_tag</code> table.</p>
 
@@ -457,53 +452,70 @@
 </main>
 
 <script>
-const ABILITIES = [
-  { id:"A1", key:"LF",   name:"Longitudinal Following",           varc:"--a1", anchor:"NHTSA: Perform Car Following",
-    def:"Headway regulation and collision-avoiding acceleration." },
-  { id:"A2", key:"RC",   name:"Roadway Containment",              varc:"--a2", anchor:"FHWA Roadway Departure Program",
-    def:"Drivable-corridor tracking and dynamic stability." },
-  { id:"A3", key:"RWN",  name:"Right-of-Way Negotiation",         varc:"--a3", anchor:"NHTSA: Right-of-Way Decisions",
-    def:"Merges, crossings, and unprotected turns." },
-  { id:"A4", key:"TCC",  name:"Traffic Control Compliance",       varc:"--a4", anchor:"NHTSA: Respond to Signals & Signs",
-    def:"Signs, signals, and traffic rules." },
-  { id:"A5", key:"VRU",  name:"VRU Interaction",                  varc:"--a5", anchor:"23 U.S.C. §148(a)(15)",
-    def:"Yielding and clearance around vulnerable road users." },
-  { id:"A6", key:"IDTA", name:"Incident & Directed-Traffic",      varc:"--a6", anchor:"NHTSA: Follow Police/First Responder",
-    def:"Work zones, obstructions, emergency scenes, and human-directed traffic." },
+// The four RoadSafe365 parent categories. Every leaf has exactly one, and the
+// benchmark reports one ability score (AS) per category, SR per leaf. A leaf's
+// category is its `cls`, so the two can never drift apart.
+const CATEGORIES = [
+  { id:"TC",   name:"Traffic Crashes",    varc:"--a1", cls:"Traffic Crashes",
+    def:"Collision outcomes — ego contact with vehicles, objects, or the roadway." },
+  { id:"TV",   name:"Traffic Violations", varc:"--a3", cls:"Traffic Violations",
+    def:"Rule breaches — signals, signs, speed, lane discipline, right-of-way." },
+  { id:"VRUC", name:"VRU Crashes",        varc:"--a5", cls:"VRU Crashes",
+    def:"Conflicts with pedestrians, cyclists, micromobility, and animals." },
+  { id:"TI",   name:"Traffic Incidents",  varc:"--a6", cls:"Traffic Incidents",
+    def:"Obstructions, work zones, emergency scenes, and directed traffic." },
 ];
+const catOf = l => CATEGORIES.find(c => c.cls === l.cls);
 const LEAVES = [
-  { id:"C-1",  name:"Rear-End",             cls:"Traffic Crashes", ab:"A1", types:["stopping_with_lead","behind_long_vehicle","near_long_vehicle","stopping_at_traffic_light_with_lead","stopping_at_stop_sign_with_lead","stationary_at_traffic_light_with_lead","accelerating_at_traffic_light_with_lead"] },
-  { id:"C-2",  name:"Angle / T-Bone",       cls:"Traffic Crashes", ab:"A3", types:["crossed_by_vehicle","starting_protected_cross_turn"] },
-  { id:"C-3",  name:"Sideswipe",            cls:"Traffic Crashes", ab:"A3", types:["changing_lane_with_lead","changing_lane_with_trail","near_high_speed_vehicle"] },
-  { id:"C-4",  name:"Multi-Vehicle",        cls:"Traffic Crashes", ab:"A3", types:["near_multiple_vehicles"] },
-  { id:"C-5",  name:"Intersection",         cls:"Traffic Crashes", ab:"A2", types:["traversing_intersection","on_intersection","starting_left_turn","starting_right_turn","starting_low_speed_turn","starting_high_speed_turn","starting_protected_noncross_turn"] },
-  { id:"C-6",  name:"Roadway Departure",    cls:"Traffic Crashes", ab:"A2", types:["traversing_pickup_dropoff","on_pickup_dropoff"] },
-  { id:"C-7",  name:"Head-On",              cls:"Traffic Crashes", ab:"A3", types:["traversing_narrow_lane"] },
-  { id:"C-8",  name:"Backing",              cls:"Traffic Crashes", ab:"A5", types:["on_carpark"], note:"context only" },
-  // no nuPlan type covers C-9, but it is populated by mining rather than built:
-  // the leaf is defined by surface and lighting, which scene editing does not touch.
-  { id:"C-9",  name:"Single-Vehicle",       cls:"Traffic Crashes", ab:"A2", types:[], mined:true,
-    note:"no nuPlan type covers it; populated by mining, not constructed" },
-  { id:"C-10", name:"Wrong-Way (crash)",    cls:"Traffic Crashes", ab:"A3", types:[] },
-  { id:"V-1",  name:"Red-Light / Stop-Sign",cls:"Traffic Violations", ab:"A4", types:["traversing_traffic_light_intersection","on_traffic_light_intersection","on_stopline_traffic_light","starting_straight_traffic_light_intersection_traversal","stopping_at_traffic_light_without_lead","stationary_at_traffic_light_without_lead","accelerating_at_traffic_light","accelerating_at_traffic_light_without_lead","on_stopline_stop_sign","starting_straight_stop_sign_intersection_traversal","stopping_at_stop_sign_without_lead","stopping_at_stop_sign_no_crosswalk","accelerating_at_stop_sign","accelerating_at_stop_sign_no_crosswalk"] },
-  { id:"V-2",  name:"Failure to Yield",     cls:"Traffic Violations", ab:"A3", types:["starting_unprotected_cross_turn","starting_unprotected_noncross_turn","on_all_way_stop_intersection"] },
-  { id:"V-3",  name:"Unsafe Lane Change",   cls:"Traffic Violations", ab:"A2", types:["changing_lane","changing_lane_to_left","changing_lane_to_right"] },
-  { id:"V-4",  name:"Reckless / Aggressive",cls:"Traffic Violations", ab:"A2", types:["high_lateral_acceleration","high_magnitude_jerk"] },
-  { id:"V-5",  name:"Speeding",             cls:"Traffic Violations", ab:"A4", types:["high_magnitude_speed","medium_magnitude_speed","low_magnitude_speed"] },
-  { id:"V-6",  name:"Tailgating",           cls:"Traffic Violations", ab:"A1", types:["following_lane_with_lead","following_lane_with_slow_lead"] },
-  { id:"V-7",  name:"Failure to Maintain Lane", cls:"Traffic Violations", ab:"A2", types:["following_lane_without_lead"] },
-  { id:"V-8",  name:"Illegal U-Turn / Turn",cls:"Traffic Violations", ab:"A4", types:["starting_u_turn"] },
-  { id:"V-9",  name:"Blocking Intersection",cls:"Traffic Violations", ab:"A3", types:["stationary","stationary_in_traffic"] },
-  { id:"V-10", name:"Unsafe Merge / Entry", cls:"Traffic Violations", ab:"A3", types:[] },
-  { id:"V-11", name:"Driving Wrong Way",    cls:"Traffic Violations", ab:"A4", types:[] },
-  { id:"R-1",  name:"Pedestrian-Involved",  cls:"VRU Crashes", ab:"A5", types:["waiting_for_pedestrian_to_cross","near_pedestrian_on_crosswalk","near_pedestrian_on_crosswalk_with_ego","near_multiple_pedestrians","behind_pedestrian_on_driveable","behind_pedestrian_on_pickup_dropoff","near_pedestrian_at_pickup_dropoff","traversing_crosswalk","on_stopline_crosswalk","stopping_at_crosswalk","stationary_at_crosswalk","accelerating_at_crosswalk"] },
-  { id:"R-2",  name:"Bicycle-Involved",     cls:"VRU Crashes", ab:"A5", types:["behind_bike","crossed_by_bike","near_multiple_bikes"] },
-  { id:"R-3",  name:"Micromobility",        cls:"VRU Crashes", ab:"A5", types:[] },
-  { id:"R-4",  name:"Animal-Involved",      cls:"VRU Crashes", ab:"A5", types:[] },
-  { id:"I-1",  name:"Obstruction / Hazard", cls:"Traffic Incidents", ab:"A6", types:["near_trafficcone_on_driveable","near_barrier_on_driveable"] },
-  { id:"I-2",  name:"Work-Zone",            cls:"Traffic Incidents", ab:"A6", types:["near_construction_zone_sign"] },
-  { id:"I-3",  name:"General Incident",     cls:"Traffic Incidents", ab:"A6", types:[] },
+  { id:"C-1",  name:"Rear-End",             cls:"Traffic Crashes", types:["stopping_with_lead","behind_long_vehicle","near_long_vehicle","stopping_at_traffic_light_with_lead","stopping_at_stop_sign_with_lead","stationary_at_traffic_light_with_lead","accelerating_at_traffic_light_with_lead"] },
+  { id:"C-2",  name:"Angle / T-Bone",       cls:"Traffic Crashes", types:["crossed_by_vehicle","starting_protected_cross_turn"] },
+  { id:"C-3",  name:"Sideswipe",            cls:"Traffic Crashes", types:["changing_lane_with_lead","changing_lane_with_trail","near_high_speed_vehicle"] },
+  { id:"C-4",  name:"Multi-Vehicle",        cls:"Traffic Crashes", types:["near_multiple_vehicles"] },
+  { id:"C-5",  name:"Intersection",         cls:"Traffic Crashes", types:["traversing_intersection","on_intersection","starting_left_turn","starting_right_turn","starting_low_speed_turn","starting_high_speed_turn","starting_protected_noncross_turn"] },
+  { id:"C-6",  name:"Roadway Departure",    cls:"Traffic Crashes", types:["traversing_pickup_dropoff","on_pickup_dropoff"] },
+  { id:"C-7",  name:"Head-On",              cls:"Traffic Crashes", types:["traversing_narrow_lane"] },
+  { id:"C-8",  name:"Backing",              cls:"Traffic Crashes", types:["on_carpark"], note:"context only" },
+  // no nuPlan type covers C-9 and it has no precursor tag of its own — its ten
+  // scenarios come by escalation from V-4 / C-6 review, not by mining or editing.
+  { id:"C-9",  name:"Single-Vehicle",       cls:"Traffic Crashes", types:[],
+    note:"no nuPlan precursor; populated by escalation from V-4 / C-6 review" },
+  { id:"C-10", name:"Wrong-Way (crash)",    cls:"Traffic Crashes", types:[] },
+  { id:"V-1",  name:"Red-Light / Stop-Sign",cls:"Traffic Violations", types:["traversing_traffic_light_intersection","on_traffic_light_intersection","on_stopline_traffic_light","starting_straight_traffic_light_intersection_traversal","stopping_at_traffic_light_without_lead","stationary_at_traffic_light_without_lead","accelerating_at_traffic_light","accelerating_at_traffic_light_without_lead","on_stopline_stop_sign","starting_straight_stop_sign_intersection_traversal","stopping_at_stop_sign_without_lead","stopping_at_stop_sign_no_crosswalk","accelerating_at_stop_sign","accelerating_at_stop_sign_no_crosswalk"] },
+  { id:"V-2",  name:"Failure to Yield",     cls:"Traffic Violations", types:["starting_unprotected_cross_turn","starting_unprotected_noncross_turn","on_all_way_stop_intersection"] },
+  { id:"V-3",  name:"Unsafe Lane Change",   cls:"Traffic Violations", types:["changing_lane","changing_lane_to_left","changing_lane_to_right"] },
+  { id:"V-4",  name:"Reckless / Aggressive",cls:"Traffic Violations", types:["high_lateral_acceleration","high_magnitude_jerk"] },
+  { id:"V-5",  name:"Speeding",             cls:"Traffic Violations", types:["high_magnitude_speed","medium_magnitude_speed","low_magnitude_speed"] },
+  { id:"V-6",  name:"Tailgating",           cls:"Traffic Violations", types:["following_lane_with_lead","following_lane_with_slow_lead"] },
+  { id:"V-7",  name:"Failure to Maintain Lane", cls:"Traffic Violations", types:["following_lane_without_lead"] },
+  { id:"V-8",  name:"Illegal U-Turn / Turn",cls:"Traffic Violations", types:["starting_u_turn"] },
+  { id:"V-9",  name:"Blocking Intersection",cls:"Traffic Violations", types:["stationary","stationary_in_traffic"] },
+  { id:"V-10", name:"Unsafe Merge / Entry", cls:"Traffic Violations", types:[] },
+  { id:"V-11", name:"Driving Wrong Way",    cls:"Traffic Violations", types:[] },
+  { id:"R-1",  name:"Pedestrian-Involved",  cls:"VRU Crashes", types:["waiting_for_pedestrian_to_cross","near_pedestrian_on_crosswalk","near_pedestrian_on_crosswalk_with_ego","near_multiple_pedestrians","behind_pedestrian_on_driveable","behind_pedestrian_on_pickup_dropoff","near_pedestrian_at_pickup_dropoff","traversing_crosswalk","on_stopline_crosswalk","stopping_at_crosswalk","stationary_at_crosswalk","accelerating_at_crosswalk"] },
+  { id:"R-2",  name:"Bicycle-Involved",     cls:"VRU Crashes", types:["behind_bike","crossed_by_bike","near_multiple_bikes"] },
+  { id:"R-3",  name:"Micromobility",        cls:"VRU Crashes", types:[] },
+  { id:"R-4",  name:"Animal-Involved",      cls:"VRU Crashes", types:[] },
+  { id:"I-1",  name:"Obstruction / Hazard", cls:"Traffic Incidents", types:["near_trafficcone_on_driveable","near_barrier_on_driveable"] },
+  { id:"I-2",  name:"Work-Zone",            cls:"Traffic Incidents", types:["near_construction_zone_sign"] },
+  { id:"I-3",  name:"General Incident",     cls:"Traffic Incidents", types:[] },
 ];
+
+// Scenario allocation per leaf — NavSafe_Scenario_Mining_Status_full_v2
+// (navsafe_scenario_review-8.xlsx, reconciled): a ≥ 10-scenario target per
+// leaf, 270 scenarios allocated one-leaf-each, 27 of 28 leaves at target.
+// 19 leaves fill from the reviewed nuPlan pool (417 reviewed → 178 qualify at
+// Keep = Y; exact bipartite allocation maximizing leaves at target). The eight
+// below have no usable pool and take their membership from the 81-scenario
+// for-editing queue; C-9 is reached by escalation from V-4 / C-6 review;
+// V-8 has no candidate that survives review and stands empty.
+const LEAF_TARGET = 10;
+const EDITED_LEAVES = new Set(["C-7","C-10","V-10","V-11","R-2","R-3","R-4","I-3"]);
+const allocOf = id => id === "V-8" ? 0 : 10;
+const srcOf = id =>
+  id === "V-8"           ? "out of scope — no candidate survives review" :
+  EDITED_LEAVES.has(id)  ? "populated from the for-editing (scene-editing) queue" :
+  id === "C-9"           ? "mined, by escalation from V-4 / C-6 review" :
+                           "mined from the reviewed nuPlan pool";
 
 const colA = document.getElementById("colA"),
       colL = document.getElementById("colL"),
@@ -663,6 +675,10 @@ function renderStrip() {
       <span class="v">44 frames @ 2 Hz <em>= 21.5 s</em></span></div>
     <div class="stat"><span class="k">Types present</span>
       <span class="v">${covered} / 73 <em>· ${over10} with &gt; 10 scenes</em></span></div>
+    <div class="stat"><span class="k">Leaf targets</span>
+      <span class="v">27 / 28 <em>· ≥ 10 scenarios each · V-8 empty</em></span></div>
+    <div class="stat"><span class="k">Allocated</span>
+      <span class="v">270 scenarios <em>· 19 leaves mined · 8 from the editing queue</em></span></div>
     <div class="stat"><span class="k">Most common</span>
       <span class="v"><code>${top}</code> ${topN} <em>= ${Math.round(topN / SCENES * 100)}% of scenes</em></span></div>
     <div class="stat"><span class="k">Maps</span><span class="mapbar" title="${
@@ -680,9 +696,9 @@ function renderStrip() {
 }
 
 const legend = document.getElementById("legend");
-for (const a of ABILITIES) {
+for (const c of CATEGORIES) {
   const s = document.createElement("span");
-  s.innerHTML = `<i style="background:var(${a.varc})"></i>${a.id} ${a.name}`;
+  s.innerHTML = `<i style="background:var(${c.varc})"></i>${c.id} ${c.name}`;
   legend.appendChild(s);
 }
 const g = document.createElement("span");
@@ -695,19 +711,19 @@ const gz = document.createElement("span");
 gz.innerHTML = `<i style="background:var(--wire)"></i>dotted type — 0 navhard scenes under this convention`;
 legend.appendChild(gz);
 
-// build ability nodes
+// build category nodes
 const abEl = {}, abTag = {};
-for (const a of ABILITIES) {
+for (const c of CATEGORIES) {
   const d = document.createElement("div");
-  d.className = "ability"; d.style.setProperty("--ac", `var(${a.varc})`);
-  d.innerHTML = `<b>${a.id} · ${a.name}</b><small>${a.anchor}</small>
+  d.className = "ability"; d.style.setProperty("--ac", `var(${c.varc})`);
+  d.innerHTML = `<b>${c.id} · ${c.name}</b><small>${c.def}</small>
     <span class="tag"></span>`;
-  colA.appendChild(d); abEl[a.id] = d; abTag[a.id] = d.querySelector(".tag");
-  bindHover(d, () => setFocus({ ab: a.id }));
+  colA.appendChild(d); abEl[c.id] = d; abTag[c.id] = d.querySelector(".tag");
+  bindHover(d, () => setFocus({ ab: c.id }));
 }
 
 // build leaf + type nodes, grouped by taxonomy class
-const leafEl = {}, leafN = {}, typeEls = {}, typeGroupEl = {};
+const leafEl = {}, typeEls = {}, typeGroupEl = {};
 let lastCls = null;
 for (const l of LEAVES) {
   if (l.cls !== lastCls) {
@@ -716,15 +732,16 @@ for (const l of LEAVES) {
     h.className = "classlabel"; h.textContent = l.cls;
     colL.appendChild(h);
   }
-  const a = ABILITIES.find(x => x.id === l.ab);
+  const a = catOf(l);
   const d = document.createElement("div");
-  d.className = "leaf" + (l.types.length ? "" : " empty");
+  d.className = "leaf" + (l.types.length ? "" : " empty")
+    + (allocOf(l.id) < LEAF_TARGET ? " short" : "");
   d.style.setProperty("--ac", `var(${a.varc})`);
-  // the type-count text is filled by applyStats(); it depends on the convention
+  // the badge is the leaf's allocated scenario count against the ≥ 10 target;
+  // the tooltip (source + convention-dependent type coverage) is set by applyStats()
   d.innerHTML = `<span class="dot"></span><b>${l.id} ${l.name}</b><span class="n">${
-    l.types.length ? "" : (l.mined ? "mined" : "constructed")}</span>`;
-  if (l.note) d.title = `${l.id} ${l.name} — ${l.note}`;
-  colL.appendChild(d); leafEl[l.id] = d; leafN[l.id] = d.querySelector(".n");
+    allocOf(l.id)} / ${LEAF_TARGET}</span>`;
+  colL.appendChild(d); leafEl[l.id] = d;
   bindHover(d, () => setFocus({ leaf: l.id }));
 
   if (l.types.length) {
@@ -734,14 +751,14 @@ for (const l of LEAVES) {
       const te = document.createElement("div");
       te.className = "type" + (CLIPS[t] ? " hasclip" : "");
       te.style.setProperty("--ac", `var(${a.varc})`);
-      te.innerHTML = `<span class="tn"></span><span class="bar"><i></i></span><span class="cnt"></span>`;
+      te.innerHTML = `<span class="tn"></span>`;
       te.querySelector(".tn").textContent = t;
       const s = STATS[t];
       if (s) te.title = `${t}\nnavhard scenes (of 421) — anchor ${s[0]} · s44 ${s[1]} · 20 s ${s[2]} · 21.5 s ${s[3]}`
         + `\nnuPlan-wide: ${s[4].toLocaleString()} scenario_tag rows`;
       grp.appendChild(te);
       const panel = CLIPS[t] ? makeClipPanel(t, grp) : null;
-      typeEls[t] = { el: te, leaf: l.id, panel, bar: te.querySelector(".bar i"), cnt: te.querySelector(".cnt") };
+      typeEls[t] = { el: te, leaf: l.id, panel };
       bindHover(te, () => setFocus({ type: t, leaf: l.id }), () => openClip(panel, te));
     }
     colT.appendChild(grp); typeGroupEl[l.id] = grp;
@@ -767,7 +784,7 @@ let wireIndex = [];
 function buildWires() {
   wires.innerHTML = ""; wireIndex = [];
   for (const l of LEAVES) {
-    const a = ABILITIES.find(x => x.id === l.ab);
+    const a = catOf(l);
     for (const kind of l.types.length ? ["AL", "LT"] : ["AL"]) {
       const p = document.createElementNS("http://www.w3.org/2000/svg", "path");
       // a live var() reference, not a resolved colour, so the stroke follows a
@@ -775,7 +792,7 @@ function buildWires() {
       p.style.stroke = `var(${a.varc})`;
       if (!l.types.length) p.setAttribute("stroke-dasharray", "4 4");
       wires.appendChild(p);
-      wireIndex.push({ p, ab: l.ab, leaf: l.id, kind });
+      wireIndex.push({ p, ab: a.id, leaf: l.id, kind });
     }
   }
 }
@@ -866,15 +883,15 @@ function setFocus(f) {
   const litLeaves = new Set(), litAbs = new Set(), litTypes = new Set();
   if (f.ab) {
     litAbs.add(f.ab);
-    for (const l of LEAVES) if (l.ab === f.ab) {
+    for (const l of LEAVES) if (catOf(l).id === f.ab) {
       litLeaves.add(l.id); l.types.forEach(t => litTypes.add(t));
     }
   } else if (f.leaf && !f.type) {
     const l = LEAVES.find(x => x.id === f.leaf);
-    litLeaves.add(l.id); litAbs.add(l.ab); l.types.forEach(t => litTypes.add(t));
+    litLeaves.add(l.id); litAbs.add(catOf(l).id); l.types.forEach(t => litTypes.add(t));
   } else if (f.type) {
     const l = LEAVES.find(x => x.id === f.leaf);
-    litTypes.add(f.type); litLeaves.add(l.id); litAbs.add(l.ab);
+    litTypes.add(f.type); litLeaves.add(l.id); litAbs.add(catOf(l).id);
   }
   for (const [id, el] of Object.entries(abEl))
     el.classList.toggle("dim", !litAbs.has(id)),
@@ -892,29 +909,29 @@ function clearFocus() {
   paintWires(null);
 }
 
-// counts, bars and coverage badges for the selected convention. Leaves and
-// abilities report how many of their types occur in navhard, never a sum of
-// scene counts — one scene can carry several types, so those columns overlap.
+// counts and bars for the selected convention. A leaf's badge is its static
+// scenario allocation from the mining sheet; the convention only moves the
+// type counts, the hollow dots, and the leaf tooltips — never a sum of scene
+// counts, since one scene can carry several types.
 function applyStats() {
-  const max = Math.max(...ALLTYPES.map(nOf), 1);
-  for (const [t, o] of Object.entries(typeEls)) {
-    const c = nOf(t);
-    o.el.classList.toggle("zero", c === 0);
-    o.cnt.textContent = c;
-    o.bar.style.width = c ? Math.max(5, c / max * 100) + "%" : "0";
-  }
+  for (const [t, o] of Object.entries(typeEls))
+    o.el.classList.toggle("zero", nOf(t) === 0);
   for (const l of LEAVES) {
-    if (!l.types.length) continue;
     const cov = l.types.filter(t => nOf(t) > 0).length;
-    leafEl[l.id].classList.toggle("novh", cov === 0);
-    leafN[l.id].textContent = `${cov}/${l.types.length} types`;
+    leafEl[l.id].classList.toggle("novh", l.types.length > 0 && cov === 0);
+    leafEl[l.id].title =
+      `${l.id} ${l.name} — ${allocOf(l.id)}/${LEAF_TARGET} scenarios · ${srcOf(l.id)}`
+      + (l.types.length
+        ? `\n${cov}/${l.types.length} types occur in navhard under ${conv.label}`
+        : `\nno nuPlan scenario type`)
+      + (l.note ? `\n${l.note}` : "");
   }
-  for (const a of ABILITIES) {
-    const ls = LEAVES.filter(l => l.ab === a.id), ts = ls.flatMap(l => l.types);
-    abTag[a.id].textContent =
-      `${ls.length} leaves · ${ts.filter(t => nOf(t) > 0).length}/${ts.length} types in navhard`;
+  for (const c of CATEGORIES) {
+    const ls = LEAVES.filter(l => l.cls === c.cls);
+    const at = ls.filter(l => allocOf(l.id) >= LEAF_TARGET).length;
+    abTag[c.id].textContent =
+      `${ls.length} leaves · ${at}/${ls.length} at the 10-scenario target`;
   }
-  document.getElementById("scenehead").textContent = `navhard scenes · ${conv.label}`;
   renderStrip();
   drawWires();
 }
