@@ -53,7 +53,9 @@ const TERM = {
 };
 
 const cache = new Map();        // token -> payload
-const state = { token: SCENARIOS[0].token, model: null, axis: "lateral", idx: 3, compare: false };
+const state = { token: SCENARIOS[0].token, model: null, axis: "lateral", idx: 3,
+                compare: false, cam: "auto", show: "both" };
+const CAM_LABEL = { CAM_F0: "Front", CAM_L0: "Left", CAM_R0: "Right", CAM_B0: "Rear" };
 
 const $ = id => document.getElementById(id);
 const css = n => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
@@ -88,7 +90,9 @@ function toBaseFrame(pts, [bx, by], bh) {
     return [s * dx + c * dy, c * dx - s * dy];   // [lateral(+left), forward]
   });
 }
-/** A cell's plan (and its ego) in the baseline ego's frame. */
+/** A cell's plan, candidate fan, driven path and ego, all in the baseline
+ *  ego's frame. `executed_xy` is already world, so it only needs the second
+ *  half of the transform — it is where the car GOT TO, not what it intended. */
 function inBaseFrame(cell, baseCell) {
   if (!cell || !baseCell || !cell.selected_ego || !cell.ego_xy || cell.ego_xy[0] === null) return null;
   const b = baseCell.ego_xy, bh = baseCell.ego_heading;
@@ -97,6 +101,11 @@ function inBaseFrame(cell, baseCell) {
     fan: cell.candidates
       ? cell.candidates.map(c => toBaseFrame(toWorld(c, cell.ego_xy, cell.ego_heading), b, bh))
       : null,
+    driven: cell.executed_xy && cell.executed_xy.length > 1
+      ? toBaseFrame(cell.executed_xy, b, bh) : null,
+    // Everything before this index is the shared warm-up: identical in every
+    // arm, so it is drawn once and faintly rather than seven times.
+    handoffIdx: Math.max(0, cell.handoff_idx || 0),
     ego: toBaseFrame([cell.ego_xy], b, bh)[0],
   };
 }
@@ -161,25 +170,100 @@ function renderTicks(data) {
 
 // ---------------------------------------------------------------- views
 
+/** The camera that actually shows this plan: most waypoints on frame, front
+ *  preferred on a tie because it is the view a reader expects. */
+function bestCamera(data, cell) {
+  if (!cell || !cell.selected_ego || !data.cameras) return "CAM_F0";
+  const order = ["CAM_F0", ...(data.surround || [])];
+  let best = "CAM_F0", bestN = -1;
+  for (const name of order) {
+    const cam = data.cameras[name];
+    if (!cam) continue;
+    if (name !== "CAM_F0" && !(cell.surround || {})[name]) continue;
+    const n = onFrame(cell.selected_ego, cam);
+    if (n > bestN) { bestN = n; best = name; }
+  }
+  return best;
+}
+
 function renderShots(data) {
   // While the compare button is held, both views show the UNPERTURBED run at
   // the same instant. Flipping in place is the only way to see half a metre:
   // side by side the eye reads two pictures, not one picture that moved.
   const armId = state.compare && data.arms.base ? "base" : armAt(data, state.axis, state.idx);
   const cell = cellAt(data, armId, state.model);
-  for (const [boxId, imgId, key] of [["shotCam", "imgCam", "cam"], ["shotBev", "imgBev", "bev"]]) {
-    const box = $(boxId), img = $(imgId);
-    if (cell) { box.classList.remove("empty"); img.src = `data/${cell[key]}`; }
-    else {
-      box.classList.add("empty");
-      box.dataset.msg = armId ? "This model has not finished this displacement yet."
-                              : "This displacement has not been evaluated yet.";
-    }
+
+  const box = $("shotCam"), img = $("imgCam");
+  let chosen = "CAM_F0";
+  if (cell) {
+    chosen = state.cam === "auto" ? bestCamera(data, cell) : state.cam;
+    const src = chosen === "CAM_F0" ? cell.cam : (cell.surround || {})[chosen];
+    if (src) { box.classList.remove("empty"); img.src = `data/${src}`; }
+    else { box.classList.add("empty"); box.dataset.msg = `${CAM_LABEL[chosen]} camera was not written for this cell.`; }
+  } else {
+    box.classList.add("empty");
+    box.dataset.msg = armId ? "This model has not finished this displacement yet."
+                            : "This displacement has not been evaluated yet.";
   }
+  renderOverlay(data, cell, chosen);
+  renderCamBar(data, cell, chosen);
+
+  const bbox = $("shotBev"), bimg = $("imgBev");
+  if (cell) { bbox.classList.remove("empty"); bimg.src = `data/${cell.bev}`; }
+  else { bbox.classList.add("empty"); bbox.dataset.msg = box.dataset.msg; }
+
   for (const j of [state.idx - 1, state.idx + 1]) {   // warm the neighbours
     const c = cellAt(data, armAt(data, state.axis, j), state.model);
     if (c) { new Image().src = `data/${c.cam}`; new Image().src = `data/${c.bev}`; }
   }
+}
+
+/** The camera picker, with each camera's plan coverage on its chip. */
+function renderCamBar(data, cell, chosen) {
+  const order = ["CAM_F0", ...(data.surround || [])];
+  const items = [{ id: "auto", label: "Auto", sub: CAM_LABEL[chosen] || "" }];
+  for (const name of order) {
+    const cam = data.cameras && data.cameras[name];
+    const n = cam && cell && cell.selected_ego ? onFrame(cell.selected_ego, cam) : 0;
+    const tot = cell && cell.selected_ego ? cell.selected_ego.length : 0;
+    items.push({
+      id: name, label: CAM_LABEL[name] || name,
+      sub: tot ? `${n}/${tot} wp` : "",
+      disabled: name !== "CAM_F0" && !((cell || {}).surround || {})[name],
+    });
+  }
+  segButtons($("segCam"), items, c => c.id === state.cam,
+             c => { state.cam = c.id; update(); });
+  // Say plainly whose overlay is on screen: the evaluator burns its own into
+  // CAM_F0, and the surround plates are clean, so the page draws those itself.
+  $("camNote").textContent = chosen === "CAM_F0"
+    ? "Overlay rendered by the evaluator."
+    : `Plan projected onto the ${CAM_LABEL[chosen].toLowerCase()} camera by this page — CAM_F0's 63.7° field of view does not contain it.`;
+}
+
+/** Draw the plan (and candidate fan) onto a clean surround plate. */
+function renderOverlay(data, cell, chosen) {
+  const svg = $("camOverlay");
+  if (!cell || chosen === "CAM_F0" || !data.cameras || !data.cameras[chosen]) {
+    svg.innerHTML = ""; svg.removeAttribute("viewBox"); return;
+  }
+  const cam = data.cameras[chosen];
+  svg.setAttribute("viewBox", `0 0 ${cam.width} ${cam.height}`);
+  const poly = (pts, stroke, w, op) => {
+    const p = projectEgo(pts, cam).filter(Boolean)
+      .filter(q => q.u > -cam.width && q.u < 2 * cam.width && q.v > -cam.height && q.v < 2 * cam.height);
+    if (p.length < 2) return "";
+    return `<polyline points="${p.map(q => `${q.u.toFixed(1)},${q.v.toFixed(1)}`).join(" ")}" `
+         + `fill="none" stroke="${stroke}" stroke-width="${w}" stroke-opacity="${op}" `
+         + `stroke-linecap="round" stroke-linejoin="round"/>`;
+  };
+  let out = "";
+  for (const c of cell.candidates || []) out += poly(c, css("--ghost"), 5, .5);
+  out += poly(cell.selected_ego, css("--a6"), 13, .95);
+  for (const q of projectEgo(cell.selected_ego, cam)) {
+    if (q) out += `<circle cx="${q.u.toFixed(1)}" cy="${q.v.toFixed(1)}" r="9" fill="${css("--a6")}"/>`;
+  }
+  svg.innerHTML = out;
 }
 
 // ---------------------------------------------------------------- caption
@@ -247,6 +331,28 @@ function renderCaption(data) {
       + `${(cell.executed_frames / 10).toFixed(1)} s.`);
 }
 
+/** Lateral spread of this axis's runs at hand-off and at the end of the
+ *  episode. The chart cannot show this: three metres of spread across a
+ *  170 m drive is under two percent of the frame, so the seven paths overlay
+ *  into one line however they are scaled. The numbers do not have that
+ *  problem, and convergence-or-divergence is the whole question. */
+function spread(data) {
+  const base = cellAt(data, "base", state.model);
+  if (!base) return null;
+  const ax = data.axes[state.axis];
+  const start = [], end = [];
+  for (let i = 0; i < ax.arms.length; i++) {
+    const cell = cellAt(data, armAt(data, state.axis, i), state.model);
+    const t = cell && inBaseFrame(cell, base);
+    if (!t || !t.driven) continue;
+    start.push(t.ego[0]);
+    end.push(t.driven[t.driven.length - 1][0]);
+  }
+  if (start.length < 2) return null;
+  const rng = a => Math.max(...a) - Math.min(...a);
+  return { n: start.length, start: rng(start), end: rng(end) };
+}
+
 function renderReadout(data) {
   const cell = cellAt(data, armAt(data, state.axis, state.idx), state.model);
   const rows = [];
@@ -258,6 +364,14 @@ function renderReadout(data) {
     add("Driving score", cell.driving_score == null ? "&mdash;" : cell.driving_score.toFixed(1));
     add("Contact", cell.collided ? '<span class="pill bad">yes</span>'
                                  : '<span class="pill ok">none</span>');
+    const sp = spread(data);
+    if (sp) {
+      const verdict = sp.end < sp.start * 0.5 ? "converges"
+                    : sp.end > sp.start * 1.5 ? "diverges" : "holds";
+      add(`Spread of ${sp.n} runs`,
+          `${sp.start.toFixed(1)} m at hand-off &rarr; ${sp.end.toFixed(1)} m at the end `
+          + `<span class="pill ${verdict === "diverges" ? "bad" : "ok"}">${verdict}</span>`);
+    }
   } else add("Status", "not evaluated yet");
   $("readout").innerHTML = rows.join("");
 }
@@ -275,6 +389,8 @@ function draw() {
   g.setTransform(dpr, 0, 0, dpr, 0, 0);
   g.clearRect(0, 0, W, H);
 
+  const wantPlan = state.show !== "executed";
+  const wantDriven = state.show !== "plan";
   const ax = data.axes[state.axis];
   const base = cellAt(data, "base", state.model);
   const picked = [];
@@ -284,7 +400,10 @@ function draw() {
       const cell = cellAt(data, armAt(data, state.axis, i), state.model);
       const t = cell && inBaseFrame(cell, base);
       if (!t) continue;
-      picked.push({ v: ax.values[i], pts: t.plan, ego: t.ego, current: i === state.idx });
+      picked.push({
+        v: ax.values[i], plan: t.plan, driven: t.driven, ego: t.ego,
+        current: i === state.idx, cell,
+      });
       if (i === state.idx) fan = t.fan;
     }
   }
@@ -297,10 +416,21 @@ function draw() {
     return;
   }
 
+  // Fit to what is actually drawn. The driven path can be an order of
+  // magnitude longer than the 4 s plan -- 187 m against 20 m on C-2's
+  // PDM-Closed -- so a fixed extent would squash one of them to nothing.
   let lo = 0, hi = 0, fwdHi = 1, fwdLo = 0;
   const scan = pts => { for (const [l, f] of pts) { lo = Math.min(lo, l); hi = Math.max(hi, l); fwdHi = Math.max(fwdHi, f); fwdLo = Math.min(fwdLo, f); } };
-  picked.forEach(p => { scan(p.pts); scan([p.ego]); });
-  if (fan) fan.forEach(scan);
+  for (const p of picked) {
+    scan([p.ego]);
+    if (wantPlan) scan(p.plan);
+    // The warm-up is deliberately OUTSIDE the extent: it is the same prefix in
+    // every arm, and letting it size the box spends half the panel on the one
+    // stretch where nothing differs. It still draws, faintly, running off the
+    // bottom edge as context.
+    if (wantDriven && p.driven) scan(p.driven.slice(p.handoffIdx));
+  }
+  if (wantPlan && fan) fan.forEach(scan);
   const m = Math.max((hi - lo) * 0.08, 0.7);
   lo -= m; hi += m; fwdHi *= 1.06; fwdLo -= 0.7;
 
@@ -311,7 +441,7 @@ function draw() {
   const X = l => ox - l * s;
   const Y = f => oy - f * s;
 
-  const step = fwdHi > 60 ? 20 : fwdHi > 30 ? 10 : 5;
+  const step = fwdHi > 120 ? 50 : fwdHi > 60 ? 20 : fwdHi > 30 ? 10 : 5;
   g.strokeStyle = css("--line-soft"); g.lineWidth = 1;
   g.fillStyle = css("--ink-faint");
   g.font = "10px ui-monospace, Menlo, monospace";
@@ -328,31 +458,96 @@ function draw() {
     pts.forEach(([l, f], i) => (i ? g.lineTo(X(l), Y(f)) : g.moveTo(X(l), Y(f))));
     g.stroke();
   };
-  if (fan) { g.strokeStyle = css("--ghost"); g.globalAlpha = .45; g.lineWidth = 1.1; fan.forEach(path); g.globalAlpha = 1; }
+
+  // Clip to the plot area. The extent is fitted to the post-hand-off paths on
+  // purpose, and the shared warm-up runs several metres behind it — without a
+  // clip the canvas happily draws that tail down past the axis and the box
+  // stops meaning anything.
+  g.save();
+  g.beginPath();
+  g.rect(pad.l - 2, pad.t - 2, W - pad.l - pad.r + 4, H - pad.t - pad.b + 4);
+  g.clip();
+  if (wantPlan && fan) {
+    g.strokeStyle = css("--ghost"); g.globalAlpha = .45; g.lineWidth = 1.1;
+    g.setLineDash([]); fan.forEach(path); g.globalAlpha = 1;
+  }
 
   const hex = h => [1, 3, 5].map(i => parseInt(h.slice(i, i + 2), 16));
   const mix = (a, b, t) => a.map((c, i) => Math.round(c + (b[i] - c) * t));
   const cNeg = hex(css("--a1")), cPos = hex(css("--a5")), cMid = hex(css("--ink-dim"));
   const vmax = Math.max(...ax.values.map(Math.abs)) || 1;
+
   for (const p of picked) {
     const t = p.v / vmax;
     const rgb = t < 0 ? mix(cMid, cNeg, -t) : mix(cMid, cPos, t);
     const col = `rgb(${rgb.join(",")})`;
-    g.strokeStyle = col; g.lineWidth = p.current ? 3.2 : 1.5; g.globalAlpha = p.current ? 1 : .55;
-    path(p.pts);
-    // where that arm's ego actually stood — the displacement itself
-    g.fillStyle = col; g.globalAlpha = p.current ? 1 : .6;
+    g.strokeStyle = col; g.fillStyle = col;
+
+    // Where the car actually went: dashed, because it is an outcome over ten
+    // seconds and the plan is an intention over four -- drawn the same way
+    // they would read as one line at two thicknesses.
+    if (wantDriven && p.driven) {
+      const after = p.driven.slice(p.handoffIdx);
+      if (p.current && p.handoffIdx > 0) {          // the shared warm-up, once
+        g.strokeStyle = css("--ghost"); g.setLineDash([2, 3]);
+        g.lineWidth = 1.2; g.globalAlpha = .6;
+        path(p.driven.slice(0, p.handoffIdx + 1));
+        g.strokeStyle = col;
+      }
+      g.setLineDash([5, 4]);
+      g.lineWidth = p.current ? 2.2 : 1.2;
+      g.globalAlpha = p.current ? .95 : .45;
+      path(after.length > 1 ? after : p.driven);
+      g.setLineDash([]);
+      // how the episode ended, at the point it ended
+      const end = p.driven[p.driven.length - 1];
+      const bad = p.cell.collided || p.cell.termination === "off_drivable";
+      g.globalAlpha = p.current ? 1 : .5;
+      if (bad) {
+        g.strokeStyle = css("--a5"); g.lineWidth = p.current ? 2.4 : 1.6;
+        const r = p.current ? 5 : 3.5;
+        g.beginPath();
+        g.moveTo(X(end[0]) - r, Y(end[1]) - r); g.lineTo(X(end[0]) + r, Y(end[1]) + r);
+        g.moveTo(X(end[0]) + r, Y(end[1]) - r); g.lineTo(X(end[0]) - r, Y(end[1]) + r);
+        g.stroke();
+        g.strokeStyle = col;
+      } else {
+        g.beginPath(); g.arc(X(end[0]), Y(end[1]), p.current ? 3.4 : 2.2, 0, 2 * Math.PI); g.stroke();
+      }
+      g.globalAlpha = 1;
+    }
+
+    if (wantPlan) {
+      g.lineWidth = p.current ? 3.2 : 1.5;
+      g.globalAlpha = p.current ? 1 : .55;
+      path(p.plan);
+      g.globalAlpha = 1;
+    }
+
+    // where that arm's ego stood at hand-off — the displacement itself
+    g.globalAlpha = p.current ? 1 : .6;
     g.beginPath(); g.arc(X(p.ego[0]), Y(p.ego[1]), p.current ? 4 : 2.6, 0, 2 * Math.PI); g.fill();
     g.globalAlpha = 1;
   }
 
+  g.restore();
+
   const u = AXIS[state.axis].unit;
-  $("distLegend").innerHTML =
-      `<span><i style="background:${css("--a1")}"></i>${-vmax} ${u}</span>`
-    + `<span><i style="background:${css("--ink-dim")}"></i>baseline</span>`
-    + `<span><i style="background:${css("--a5")}"></i>+${vmax} ${u}</span>`
-    + `<span><i style="background:${css("--ghost")}"></i>candidates weighed here</span>`
-    + `<span>&#9679;&nbsp;where each run's ego stood</span>`;
+  let leg = `<span><i style="background:${css("--a1")}"></i>${-vmax} ${u}</span>`
+          + `<span><i style="background:${css("--ink-dim")}"></i>baseline</span>`
+          + `<span><i style="background:${css("--a5")}"></i>+${vmax} ${u}</span>`
+          + `<span>&#9679;&nbsp;ego at hand-off</span>`;
+  if (wantPlan) leg += `<span><i class="solid"></i>plan (4 s)</span>`;
+  if (wantPlan && fan) leg += `<span><i style="background:${css("--ghost")}"></i>candidates weighed</span>`;
+  if (wantDriven) leg += `<span><i class="dash"></i>driven (whole episode)</span>`
+                       + `<span>&#9675;&nbsp;ended cleanly &nbsp; &#10005;&nbsp;off-road or contact</span>`;
+  $("distLegend").innerHTML = leg;
+
+  segButtons($("segShow"),
+    [{ id: "both", label: "Both" }, { id: "plan", label: "Plan only" },
+     { id: "executed", label: "Driven only" }],
+    o => o.id === state.show,
+    o => { state.show = o.id; draw(); });
 }
 
 // ---------------------------------------------------------------- wiring
@@ -406,3 +601,65 @@ $("slider").addEventListener("input", e => {
 window.addEventListener("resize", draw);
 
 load().catch(err => { $("capBody").textContent = `Could not load the sweep: ${err.message}`; });
+
+/* ======================================================================
+   Camera projection.
+
+   Ported line for line from nexussim/evaluation/vis_utils.py's
+   project_ego_to_camera, because the page must land the plan on the same
+   pixels the evaluator did. Two details carry the whole thing:
+
+   * the focal length comes from the HORIZONTAL fov, not the nominal ~70°
+     diagonal one the config also carries. Using the diagonal under-zooms and
+     floats the overlay a few percent of image height off the ground.
+   * `cam = (rig - t) @ R_c2r` is a ROW vector times the matrix, i.e. the
+     transpose of the usual column-vector convention. Getting that backwards
+     mirrors the image and looks almost right.
+
+   Why it exists at all: CAM_F0 sees 63.7°, and a hard turn puts the whole
+   plan outside it — on C-5, PDM-Closed turns 40-58° off axis and not one of
+   its eight waypoints lands on the front frame. The surround plates are
+   written unannotated, so the page has to draw on them itself.
+   ====================================================================== */
+const D2R = Math.PI / 180;
+
+function camMatrix(cam) {
+  const yaw = (cam.yaw || 0) * D2R, pitch = (cam.pitch || 0) * D2R, roll = (cam.roll || 0) * D2R;
+  const cz = Math.cos(yaw), sz = Math.sin(yaw);
+  const cyp = Math.cos(pitch), syp = Math.sin(pitch);
+  const cxr = Math.cos(roll), sxr = Math.sin(roll);
+  const Rz = [[cz, -sz, 0], [sz, cz, 0], [0, 0, 1]];
+  const Ry = [[cyp, 0, syp], [0, 1, 0], [-syp, 0, cyp]];
+  const Rx = [[1, 0, 0], [0, cxr, -sxr], [0, sxr, cxr]];
+  const Rb = [[0, 0, 1], [-1, 0, 0], [0, -1, 0]];
+  const mul = (A, B) => A.map(r => B[0].map((_, j) => r.reduce((s, v, k) => s + v * B[k][j], 0)));
+  return mul(mul(mul(Rz, Ry), Rx), Rb);          // camera -> rig
+}
+
+/** Ego-frame [lateral(+left), forward] -> {u, v} in the camera's OWN pixels. */
+function projectEgo(pts, cam) {
+  const W = cam.width, H = cam.height;
+  const fovH = cam.fov_h || cam.fov || 70;
+  const f = W / (2 * Math.tan(fovH * D2R / 2));
+  const R = camMatrix(cam);
+  const t = [cam.x || 0, cam.y || 0, cam.z || 0];
+  return pts.map(([lat, fwd]) => {
+    const d = [fwd - t[0], lat - t[1], 0 - t[2]];           // rig FLU, plan on the ground
+    const c = [0, 1, 2].map(j => d[0] * R[0][j] + d[1] * R[1][j] + d[2] * R[2][j]);
+    if (c[2] <= 0.1) return null;                           // behind the camera
+    // Clamped exactly as the source does. A waypoint just off the edge
+    // otherwise projects to thousands of pixels away and drags the polyline
+    // with it; the clamp keeps the segment heading off-frame in the right
+    // direction instead of across it.
+    const clamp = (x, lo, hi) => Math.min(hi, Math.max(lo, x));
+    return {
+      u: clamp(f * c[0] / c[2] + W / 2, -W, 2 * W),
+      v: clamp(f * c[1] / c[2] + H / 2, -H, 2 * H),
+    };
+  });
+}
+
+/** How many of a path's points land on this camera's frame. */
+function onFrame(pts, cam) {
+  return projectEgo(pts, cam).filter(p => p && p.u >= 0 && p.u < cam.width && p.v >= 0 && p.v < cam.height).length;
+}

@@ -53,12 +53,22 @@
     <div class="views">
       <figure class="view">
         <figcaption>
-          <span class="vtitle">Front camera</span>
-          <span class="vnote">NuRec reconstruction, CAM_F0 &mdash; what the policy saw</span>
+          <span class="vtitle">Camera</span>
+          <span class="vnote">NuRec reconstruction &mdash; what the policy saw</span>
           <button type="button" class="cmpbtn" id="cmpBtn"
                   title="Hold to swap both views back to the unperturbed run">Hold to compare</button>
         </figcaption>
-        <div class="shot" id="shotCam"><img id="imgCam" alt="Front camera at the hand-off frame"></div>
+        <div class="shot" id="shotCam">
+          <img id="imgCam" alt="Camera view at the hand-off frame">
+          <!-- Projected overlay for the surround plates, which the evaluator
+               writes unannotated. Letterboxes exactly like the img above
+               because both are `contain`-fitted into the same box. -->
+          <svg id="camOverlay" preserveAspectRatio="xMidYMid meet" aria-hidden="true"></svg>
+        </div>
+        <div class="cambar">
+          <span class="seg tiny" id="segCam"></span>
+          <span class="camnote" id="camNote"></span>
+        </div>
       </figure>
       <figure class="view">
         <figcaption>
@@ -91,9 +101,10 @@
     <figure class="panel">
       <figcaption>
         <h2>Every displacement at once</h2>
-        <p class="note">All the plans on this axis, drawn in the <em>baseline</em> ego's frame, so the
-          displacement and the policy's response to it are both visible. Dots mark where each run's ego
-          actually stood.</p>
+        <p class="note">All the runs on this axis, in the <em>baseline</em> ego's frame, so the displacement
+          and the response to it are both visible. Solid is the 4&nbsp;s plan at hand-off; dashed is the path
+          the car actually drove for the whole episode.</p>
+        <span class="seg tiny" id="segShow"></span>
       </figcaption>
       <canvas id="dist" width="700" height="434"></canvas>
       <div class="legend" id="distLegend"></div>
