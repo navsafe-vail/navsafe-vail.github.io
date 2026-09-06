@@ -1,0 +1,224 @@
+/* ---------------------------------------------------------------------
+   Hand-off perturbation explorer.
+
+   Same palette and furniture as the rest of the site (the token block is
+   duplicated per area, as /internal does). What is specific here is a
+   three-panel reading order: the photoreal view the policy actually saw,
+   the same instant in BEV, and the numbers behind both — because the claim
+   the page makes is that a small change of pose changes the plan, and a
+   reader should be able to check that in pixels AND in coordinates.
+   ------------------------------------------------------------------ */
+:root {
+  --bg: #F6F5F2; --panel: #FFFFFF; --panel-2: #FBFAF8;
+  --ink: #23221F; --ink-dim: #6E6A61; --ink-faint: #918D84;
+  --line: #DDD9D1; --line-soft: #EAE7E0; --ghost: #A8A49B;
+  --a1: #1F4076; --a2: #52A557; --a3: #986A1E;
+  --a4: #906EB7; --a5: #A7405E; --a6: #20A39D;
+  --shadow: 0 1px 2px rgba(35,34,31,.05), 0 8px 24px -16px rgba(35,34,31,.28);
+  --maxw: 1360px;
+  color-scheme: light;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #191A1C; --panel: #202225; --panel-2: #1D1F21;
+    --ink: #E7E5E0; --ink-dim: #97948D; --ink-faint: #7B7871;
+    --line: #33353A; --line-soft: #2A2C30; --ghost: #5C5E63;
+    --a1: #316CCD; --a2: #4DAC54; --a3: #A56F05;
+    --a4: #AB76E2; --a5: #C05070; --a6: #07AAA3;
+    --shadow: 0 1px 2px rgba(0,0,0,.3), 0 8px 24px -16px rgba(0,0,0,.7);
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #191A1C; --panel: #202225; --panel-2: #1D1F21;
+  --ink: #E7E5E0; --ink-dim: #97948D; --ink-faint: #7B7871;
+  --line: #33353A; --line-soft: #2A2C30; --ghost: #5C5E63;
+  --a1: #316CCD; --a2: #4DAC54; --a3: #A56F05;
+  --a4: #AB76E2; --a5: #C05070; --a6: #07AAA3;
+  --shadow: 0 1px 2px rgba(0,0,0,.3), 0 8px 24px -16px rgba(0,0,0,.7);
+  color-scheme: dark;
+}
+
+* { box-sizing: border-box; }
+[hidden] { display: none !important; }
+body {
+  margin: 0; background: var(--bg); color: var(--ink);
+  font: 15px/1.6 ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+a { color: inherit; }
+.serif { font-family: ui-serif, Georgia, "Iowan Old Style", "Times New Roman", serif; }
+.wrap { max-width: var(--maxw); margin: 0 auto; padding: 0 28px; }
+
+/* ---------- top nav (shared shape with the public page) ---------- */
+nav#top {
+  position: sticky; top: 0; z-index: 40;
+  background: color-mix(in srgb, var(--bg) 86%, transparent);
+  backdrop-filter: saturate(180%) blur(10px);
+  border-bottom: 1px solid var(--line-soft);
+}
+nav#top .inner {
+  max-width: var(--maxw); margin: 0 auto; padding: 0 28px; height: 52px;
+  display: flex; align-items: center; gap: 22px;
+}
+.brand {
+  display: inline-flex; align-items: center; gap: 8px;
+  font: 700 13px/1 ui-sans-serif, system-ui, sans-serif; letter-spacing: .16em;
+  text-transform: uppercase; text-decoration: none; white-space: nowrap;
+}
+.brand em { font-style: normal; color: var(--a1); }
+.brand img { width: 22px; height: 22px; display: block; flex: none; }
+.navtag {
+  font-size: 10.5px; font-weight: 700; letter-spacing: .14em; text-transform: uppercase;
+  color: var(--ink-faint); border: 1px solid var(--line); border-radius: 999px; padding: 3px 9px;
+}
+.navspace { margin-left: auto; }
+.backlink { font-size: 12.5px; color: var(--ink-dim); text-decoration: none; white-space: nowrap; }
+.backlink:hover { color: var(--ink); }
+#themebtn {
+  appearance: none; background: none; border: 1px solid var(--line); border-radius: 6px;
+  color: var(--ink-dim); cursor: pointer; width: 30px; height: 28px; flex: none;
+  display: grid; place-items: center; margin-left: 4px;
+}
+#themebtn:hover { color: var(--ink); border-color: var(--ghost); }
+#themebtn svg { width: 15px; height: 15px; }
+
+/* ---------- header ---------- */
+header.hero { padding: 40px 0 18px; }
+.eyebrow {
+  font-size: 11px; font-weight: 700; letter-spacing: .16em; text-transform: uppercase;
+  color: var(--ink-faint); margin: 0 0 10px;
+}
+h1.title { font-size: clamp(26px, 3.4vw, 40px); line-height: 1.15; margin: 0 0 14px; font-weight: 600; }
+.lede { max-width: 74ch; color: var(--ink-dim); margin: 0 0 6px; font-size: 15.5px; }
+.lede strong { color: var(--ink); font-weight: 600; }
+
+/* ---------------------------------------------------------------------
+   The rig: one card holding the two views, the control that moves between
+   them, and the computed caption. Grouping them is the point — three loose
+   panels made the reader hunt for which control drove which picture.
+   ------------------------------------------------------------------ */
+.rig {
+  background: var(--panel); border: 1px solid var(--line); border-radius: 16px;
+  box-shadow: var(--shadow); overflow: hidden; margin: 10px 0 20px;
+}
+.rigbar {
+  display: flex; align-items: center; gap: 12px 18px; flex-wrap: wrap;
+  padding: 13px 16px; border-bottom: 1px solid var(--line-soft); background: var(--panel-2);
+}
+.rigspace { flex: 1 1 auto; }
+
+.seg { display: inline-flex; flex-wrap: wrap; gap: 5px; }
+.seg button {
+  appearance: none; cursor: pointer; font: inherit; font-size: 13px; line-height: 1.25;
+  background: var(--panel); color: var(--ink-dim);
+  border: 1px solid var(--line); border-radius: 999px; padding: 6px 13px;
+  transition: color .12s, border-color .12s, background .12s;
+}
+.seg.small button { font-size: 12px; padding: 5px 11px; }
+.seg button:hover:not(:disabled) { color: var(--ink); border-color: var(--ghost); }
+.seg button[aria-pressed="true"] { color: var(--panel); background: var(--a1); border-color: var(--a1); }
+.seg button:disabled { opacity: .35; cursor: not-allowed; }
+.seg button .sub { display: block; font-size: 10px; opacity: .7; letter-spacing: .04em; }
+
+/* the two views */
+.views { display: grid; grid-template-columns: minmax(0, 1.5fr) minmax(0, 1fr); }
+@media (max-width: 860px) { .views { grid-template-columns: minmax(0, 1fr); } }
+.view { margin: 0; min-width: 0; border-right: 1px solid var(--line-soft); }
+.view:last-child { border-right: 0; }
+@media (max-width: 860px) { .view { border-right: 0; border-bottom: 1px solid var(--line-soft); } }
+.view > figcaption {
+  display: grid; grid-template-columns: 1fr auto; align-items: baseline; gap: 2px 10px;
+  padding: 11px 14px 9px;
+}
+.vtitle { font-size: 13.5px; font-weight: 600; }
+.vnote { grid-column: 1 / -1; font-size: 11.5px; color: var(--ink-faint); }
+.cmpbtn {
+  grid-row: 1; grid-column: 2; justify-self: end;
+  appearance: none; font: inherit; font-size: 11.5px; cursor: pointer;
+  background: var(--panel-2); color: var(--ink-dim);
+  border: 1px solid var(--line); border-radius: 999px; padding: 4px 11px; white-space: nowrap;
+  touch-action: none; user-select: none;
+}
+.cmpbtn:hover:not(:disabled) { color: var(--ink); border-color: var(--ghost); }
+.cmpbtn[data-on="1"] { color: var(--panel); background: var(--a3); border-color: var(--a3); }
+.cmpbtn:disabled { opacity: .35; cursor: default; }
+/* Both views share a fixed frame height. The front camera is 16:10 and the
+   BEV is nearly square, so letting them size themselves stretched one of them
+   and pushed the control below the fold — the one place the widget must not
+   send the reader. `contain` letterboxes instead of cropping: a cropped BEV
+   loses exactly the periphery the reader is checking. */
+.shot { position: relative; background: var(--panel-2); height: 330px; }
+.shot img { display: block; width: 100%; height: 100%; object-fit: contain; }
+@media (max-width: 860px) { .shot { height: 260px; } }
+.shot.empty::after {
+  content: attr(data-msg); position: absolute; inset: 0; display: grid; place-items: center;
+  font-size: 12.5px; color: var(--ink-faint); text-align: center; padding: 24px;
+}
+.shot.empty img { visibility: hidden; }
+
+/* the control */
+.ctl {
+  display: flex; gap: 14px 22px; flex-wrap: wrap; align-items: flex-start;
+  padding: 15px 16px 13px; border-top: 1px solid var(--line-soft);
+}
+.sliderbox { flex: 1 1 380px; min-width: 260px; }
+.readline { margin: 0 0 6px; font-size: 13.5px; color: var(--ink-dim); }
+.readline b { color: var(--ink); font-weight: 600; }
+.sliderbox input[type=range] { width: 100%; accent-color: var(--a1); margin: 0; display: block; }
+.ticks {
+  display: flex; justify-content: space-between; margin-top: 3px;
+  font: 11px/1.2 ui-monospace, SFMono-Regular, Menlo, monospace; color: var(--ink-faint);
+}
+.ticks span { flex: 1; text-align: center; }
+.ticks span.on { color: var(--ink); font-weight: 700; }
+.ticks span.missing { opacity: .3; text-decoration: line-through; }
+
+/* the computed caption — the sentence that says what to look at */
+.caption {
+  border-top: 1px solid var(--line-soft); padding: 13px 16px 15px;
+  background: color-mix(in srgb, var(--a1) 5%, var(--panel));
+}
+.caption[data-tone="bad"] { background: color-mix(in srgb, var(--a5) 8%, var(--panel)); }
+.caption[data-tone="wait"] { background: var(--panel-2); }
+.capkicker {
+  margin: 0 0 3px; font-size: 10.5px; font-weight: 700; letter-spacing: .13em;
+  text-transform: uppercase; color: var(--a1);
+}
+.caption[data-tone="bad"] .capkicker { color: var(--a5); }
+.caption[data-tone="wait"] .capkicker { color: var(--ink-faint); }
+.capbody { margin: 0; font-size: 14px; color: var(--ink-dim); max-width: 88ch; }
+.capbody b { color: var(--ink); font-weight: 600; }
+
+/* ---------- distribution + readout ---------- */
+.lower { display: grid; grid-template-columns: minmax(0, 1.5fr) minmax(0, 1fr); gap: 18px; align-items: start; }
+@media (max-width: 860px) { .lower { grid-template-columns: minmax(0, 1fr); } }
+/* The two supporting panels. Same card as the rig, one step quieter: they are
+   the check on the widget above, not the widget. */
+.panel {
+  background: var(--panel); border: 1px solid var(--line); border-radius: 14px;
+  box-shadow: var(--shadow); overflow: hidden; margin: 0;
+}
+.panel > figcaption { padding: 13px 16px 11px; border-bottom: 1px solid var(--line-soft); }
+.panel h2 { font-size: 13.5px; margin: 0 0 3px; font-weight: 600; }
+.panel .note { font-size: 12px; color: var(--ink-faint); margin: 0; }
+.panel code { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 11.5px; }
+@media (max-width: 900px) { .lower { grid-template-columns: minmax(0, 1fr); } }
+#dist { display: block; width: 100%; height: auto; background: var(--panel-2); }
+.legend { display: flex; flex-wrap: wrap; gap: 6px 16px; padding: 10px 14px 13px; font-size: 12px; color: var(--ink-dim); }
+.legend i { display: inline-block; width: 15px; height: 3px; border-radius: 2px; margin-right: 6px; vertical-align: middle; }
+table.read { width: 100%; border-collapse: collapse; font-size: 13px; }
+table.read th, table.read td { text-align: left; padding: 7px 14px; border-bottom: 1px solid var(--line-soft); }
+table.read th { color: var(--ink-faint); font-weight: 600; white-space: nowrap; width: 1%; }
+table.read td { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; overflow-wrap: anywhere; }
+table.read tr:last-child th, table.read tr:last-child td { border-bottom: 0; }
+.pill {
+  display: inline-block; font: 700 10.5px/1.5 ui-sans-serif, system-ui, sans-serif;
+  letter-spacing: .08em; text-transform: uppercase; padding: 1px 7px; border-radius: 999px;
+  border: 1px solid currentColor;
+}
+.pill.ok { color: var(--a2); }
+.pill.bad { color: var(--a5); }
+
+footer.foot { color: var(--ink-faint); font-size: 12.5px; padding: 30px 0 46px; margin-top: 26px; border-top: 1px solid var(--line-soft); }
+footer.foot code { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 12px; }

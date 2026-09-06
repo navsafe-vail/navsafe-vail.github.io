@@ -1,0 +1,121 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>NavSafe-∞ — Hand-off perturbation explorer</title>
+<meta name="robots" content="noindex, nofollow">
+<meta name="description" content="Move the ego a few centimetres at the moment the policy takes over, and watch what it plans instead — the photorealistic front camera and the BEV, side by side, for five driving models.">
+<link rel="icon" href="/favicon.svg" type="image/svg+xml">
+<link rel="alternate icon" href="/favicon.ico" sizes="16x16 32x32">
+<link rel="apple-touch-icon" href="/apple-touch-icon.png">
+<meta name="theme-color" content="#F6F5F2" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#191A1C" media="(prefers-color-scheme: dark)">
+<link rel="stylesheet" href="/demo/demo.css">
+</head>
+<body>
+
+<nav id="top"><div class="inner">
+  <a class="brand" href="/"><img src="/logo.png" alt=""><em>Nav</em>Safe-∞</a>
+  <span class="navtag">Demo</span>
+  <span class="navspace"></span>
+  <a class="backlink" href="/">Public site&nbsp;&nearr;</a>
+  <button id="themebtn" title="Toggle light / dark" aria-label="Toggle light / dark">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+      <circle cx="12" cy="12" r="4.2"/><path d="M12 2.4v2.2M12 19.4v2.2M2.4 12h2.2M19.4 12h2.2M5.2 5.2l1.6 1.6M17.2 17.2l1.6 1.6M18.8 5.2l-1.6 1.6M6.8 17.2l-1.6 1.6"/>
+    </svg>
+  </button>
+</div></nav>
+
+<div class="wrap">
+
+  <header class="hero">
+    <p class="eyebrow">Closed-loop sensitivity</p>
+    <h1 class="title serif">Move the car half a metre. Watch the plan change.</h1>
+    <p class="lede">Each run replays the logged ego through the same warm-up, displaces it
+      <strong>once</strong> on the frame the policy takes over, and hands over from there. Same scenario,
+      same traffic, same reconstruction, same seed &mdash; so whatever changes between two positions of the
+      slider is the policy's sensitivity to that pose, and nothing else.</p>
+  </header>
+
+  <!-- ==================================================================
+       The widget. Everything that answers the page's question lives in one
+       card: the two views, the control that moves between them, and a
+       sentence computed from the run that says what to look at.
+       =============================================================== -->
+  <section class="rig">
+    <div class="rigbar">
+      <span class="seg" id="segScenario"></span>
+      <span class="rigspace"></span>
+      <span class="seg small" id="segModel"></span>
+    </div>
+
+    <div class="views">
+      <figure class="view">
+        <figcaption>
+          <span class="vtitle">Front camera</span>
+          <span class="vnote">NuRec reconstruction, CAM_F0 &mdash; what the policy saw</span>
+          <button type="button" class="cmpbtn" id="cmpBtn"
+                  title="Hold to swap both views back to the unperturbed run">Hold to compare</button>
+        </figcaption>
+        <div class="shot" id="shotCam"><img id="imgCam" alt="Front camera at the hand-off frame"></div>
+      </figure>
+      <figure class="view">
+        <figcaption>
+          <span class="vtitle">Bird&rsquo;s-eye view</span>
+          <span class="vnote">Same instant, with the map and the other actors</span>
+        </figcaption>
+        <div class="shot" id="shotBev"><img id="imgBev" alt="Bird's-eye view at the hand-off frame"></div>
+      </figure>
+    </div>
+
+    <div class="ctl">
+      <span class="seg small" id="segAxis"></span>
+      <div class="sliderbox">
+        <p class="readline"><b id="readValue"></b> <span id="readHint"></span></p>
+        <input type="range" id="slider" min="0" max="6" step="1" value="3"
+               aria-label="Displacement applied on the hand-off frame">
+        <span class="ticks" id="ticks"></span>
+      </div>
+    </div>
+
+    <div class="caption" id="caption">
+      <p class="capkicker" id="capKicker"></p>
+      <p class="capbody" id="capBody"></p>
+    </div>
+  </section>
+
+  <!-- The numbers behind the two pictures. Secondary, but the page should be
+       checkable, not only watchable. -->
+  <div class="lower">
+    <figure class="panel">
+      <figcaption>
+        <h2>Every displacement at once</h2>
+        <p class="note">All the plans on this axis, drawn in the <em>baseline</em> ego's frame, so the
+          displacement and the policy's response to it are both visible. Dots mark where each run's ego
+          actually stood.</p>
+      </figcaption>
+      <canvas id="dist" width="700" height="434"></canvas>
+      <div class="legend" id="distLegend"></div>
+    </figure>
+    <figure class="panel">
+      <figcaption><h2>This cell</h2>
+        <p class="note">Straight out of the run's <code>plan_records.json</code> and
+          <code>navsafe_metrics.json</code>.</p></figcaption>
+      <table class="read"><tbody id="readout"></tbody></table>
+    </figure>
+  </div>
+
+  <footer class="foot">
+    <p>Seed 0, recon camera rig, LQR tracker, semi-reactive traffic, from
+      <code>/avl-west/runs/20260905-handoff-perturb-demo</code>. Two of the sweep's 54 scenarios are shown here.
+      Every displacement was screened before it was simulated &mdash; the moved ego had to stay on the drivable
+      surface and keep 0.3&nbsp;m from every other actor. The sweep is still running, so a struck-through tick is
+      a displacement that has not finished evaluating; the slider skips those rather than showing a hole.</p>
+  </footer>
+
+</div>
+
+<script src="/demo/demo.js"></script>
+</body>
+</html>
