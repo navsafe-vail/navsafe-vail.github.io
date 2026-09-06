@@ -54,7 +54,7 @@
       <figure class="view">
         <figcaption>
           <span class="vtitle">Camera</span>
-          <span class="vnote">NuRec reconstruction &mdash; what the policy saw</span>
+          <span class="vnote">NuRec reconstruction &mdash; what the policy saw at the hand-off</span>
           <button type="button" class="cmpbtn" id="cmpBtn"
                   title="Hold to swap both views back to the unperturbed run">Hold to compare</button>
         </figcaption>
@@ -72,10 +72,13 @@
       </figure>
       <figure class="view">
         <figcaption>
-          <span class="vtitle">Bird&rsquo;s-eye view</span>
-          <span class="vnote">Same instant, with the map and the other actors</span>
+          <span class="vtitle">Plan view</span>
+          <span class="vnote">Run&rsquo;s own numbers on the evaluator&rsquo;s nuPlan lanes, in the
+            <em>baseline</em> frame &mdash; the baseline is ghosted behind</span>
+          <span class="seg tiny" id="segShow"></span>
         </figcaption>
-        <div class="shot" id="shotBev"><img id="imgBev" alt="Bird's-eye view at the hand-off frame"></div>
+        <div class="shot bevbox"><canvas id="dist"></canvas></div>
+        <div class="legend" id="distLegend"></div>
       </figure>
     </div>
 
@@ -99,20 +102,10 @@
        checkable, not only watchable. -->
   <div class="lower">
     <figure class="panel">
-      <figcaption>
-        <h2>Every displacement at once</h2>
-        <p class="note">All the runs on this axis, in the <em>baseline</em> ego's frame, so the displacement
-          and the response to it are both visible. Solid is the 4&nbsp;s plan at hand-off; dashed is the path
-          the car actually drove for the whole episode.</p>
-        <span class="seg tiny" id="segShow"></span>
-      </figcaption>
-      <canvas id="dist" width="700" height="434"></canvas>
-      <div class="legend" id="distLegend"></div>
-    </figure>
-    <figure class="panel">
       <figcaption><h2>This cell</h2>
-        <p class="note">Straight out of the run's <code>plan_records.json</code> and
-          <code>navsafe_metrics.json</code>.</p></figcaption>
+        <p class="note">Straight out of the run&rsquo;s <code>plan_records.json</code> and
+          <code>navsafe_metrics.json</code>. The spread row is the one comparison the picture cannot make:
+          it measures all seven displacements on this axis at once.</p></figcaption>
       <table class="read"><tbody id="readout"></tbody></table>
     </figure>
   </div>

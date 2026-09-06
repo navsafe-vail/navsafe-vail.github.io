@@ -56,6 +56,11 @@ const cache = new Map();        // token -> payload
 const state = { token: SCENARIOS[0].token, model: null, axis: "lateral", idx: 3,
                 compare: false, cam: "auto", show: "both" };
 const CAM_LABEL = { CAM_F0: "Front", CAM_L0: "Left", CAM_R0: "Right", CAM_B0: "Rear" };
+//: How much ground the plan view always shows, in metres. Chosen so a junction
+//: fits: below roughly this the panel crops to a patch of road with no context
+//: in it, and the trajectory has nothing to be read against.
+const MIN_SPAN_LAT = 48, MIN_SPAN_FWD = 48;
+const bevOf = data => data && data.bev;
 
 const $ = id => document.getElementById(id);
 const css = n => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
@@ -63,9 +68,18 @@ const fmt = (v, d = 1) => (v > 0 ? "+" : "") + v.toFixed(d);
 
 async function payload(token) {
   if (!cache.has(token)) {
-    const r = await fetch(`data/${token}.json`);
+    // The map ships beside the run. It is the SAME nuPlan geometry the
+    // evaluator scored drivable-area against, already rotated into the
+    // baseline ego's frame, so the road under a plan is the road the run was
+    // graded on and not a redrawing of it.
+    const [r, b] = await Promise.all([
+      fetch(`data/${token}.json`),
+      fetch(`data/${token}.bev.json`).catch(() => null),
+    ]);
     if (!r.ok) throw new Error(`${token}: HTTP ${r.status}`);
-    cache.set(token, await r.json());
+    const p = await r.json();
+    p.bev = b && b.ok ? await b.json() : null;
+    cache.set(token, p);
   }
   return cache.get(token);
 }
@@ -208,13 +222,12 @@ function renderShots(data) {
   renderOverlay(data, cell, chosen);
   renderCamBar(data, cell, chosen);
 
-  const bbox = $("shotBev"), bimg = $("imgBev");
-  if (cell) { bbox.classList.remove("empty"); bimg.src = `data/${cell.bev}`; }
-  else { bbox.classList.add("empty"); bbox.dataset.msg = box.dataset.msg; }
-
   for (const j of [state.idx - 1, state.idx + 1]) {   // warm the neighbours
     const c = cellAt(data, armAt(data, state.axis, j), state.model);
-    if (c) { new Image().src = `data/${c.cam}`; new Image().src = `data/${c.bev}`; }
+    if (!c) continue;
+    const nxt = state.cam === "auto" ? bestCamera(data, c) : state.cam;
+    const src = nxt === "CAM_F0" ? c.cam : (c.surround || {})[nxt];
+    if (src) new Image().src = `data/${src}`;
   }
 }
 
@@ -313,15 +326,16 @@ function renderCaption(data) {
   if (a && b && a.plan.length && b.plan.length) {
     const dLat = a.plan[a.plan.length - 1][0] - b.plan[b.plan.length - 1][0];
     const carried = state.axis === "lateral" && Math.abs(v) > 1e-6 ? dLat / v : null;
-    let body = `Its plan ends <b>${Math.abs(dLat).toFixed(2)} m</b> further `
+    let body = `Its 4 s plan ends <b>${Math.abs(dLat).toFixed(2)} m</b> further `
              + `${dLat >= 0 ? "left" : "right"} than the baseline's, and the episode still `
              + `<b>${TERM[cell.termination] || cell.termination || "ends"}</b>.`;
     if (carried !== null) {
       const pct = Math.round(Math.max(0, Math.min(1.4, carried)) * 100);
-      body += ` That is <b>${pct}%</b> of the ${Math.abs(v)} m it was moved — `
-            + (pct < 35 ? "the policy steers most of it away within the horizon."
-             : pct > 80 ? "the policy carries the displacement rather than correcting it."
-             : "the policy corrects part of it and carries the rest.");
+      body += ` That is <b>${pct}%</b> of the ${Math.abs(v)} m it was moved, `
+            + (pct < 35 ? "so most of it is steered away inside the planning horizon."
+             : pct > 80 ? "so almost none of it is corrected inside the planning horizon — "
+                          + "check the spread row for whether the episode recovers later."
+             : "so part of it is corrected inside the planning horizon and part carried.");
     }
     set(`${fmt(v)} ${ax.unit} ${ax.label.toLowerCase()}`, body);
     return;
@@ -369,7 +383,7 @@ function renderReadout(data) {
       const verdict = sp.end < sp.start * 0.5 ? "converges"
                     : sp.end > sp.start * 1.5 ? "diverges" : "holds";
       add(`Spread of ${sp.n} runs`,
-          `${sp.start.toFixed(1)} m at hand-off &rarr; ${sp.end.toFixed(1)} m at the end `
+          `${sp.start.toFixed(1)} m at hand-off &rarr; ${sp.end.toFixed(1)} m when the episodes end `
           + `<span class="pill ${verdict === "diverges" ? "bad" : "ok"}">${verdict}</span>`);
     }
   } else add("Status", "not evaluated yet");
@@ -383,8 +397,9 @@ function draw() {
   const cv = $("dist");
   if (!data || !cv) return;
   const dpr = window.devicePixelRatio || 1;
-  const W = cv.clientWidth || 700, H = Math.round(W * 0.62);
-  cv.width = W * dpr; cv.height = H * dpr; cv.style.height = `${H}px`;
+  const W = cv.clientWidth || 480, H = cv.clientHeight || 330;
+  if (!W || !H) return;
+  cv.width = W * dpr; cv.height = H * dpr;
   const g = cv.getContext("2d");
   g.setTransform(dpr, 0, 0, dpr, 0, 0);
   g.clearRect(0, 0, W, H);
@@ -393,46 +408,50 @@ function draw() {
   const wantDriven = state.show !== "plan";
   const ax = data.axes[state.axis];
   const base = cellAt(data, "base", state.model);
-  const picked = [];
-  let fan = null;
-  if (base) {
-    for (let i = 0; i < ax.arms.length; i++) {
-      const cell = cellAt(data, armAt(data, state.axis, i), state.model);
-      const t = cell && inBaseFrame(cell, base);
-      if (!t) continue;
-      picked.push({
-        v: ax.values[i], plan: t.plan, driven: t.driven, ego: t.ego,
-        current: i === state.idx, cell,
-      });
-      if (i === state.idx) fan = t.fan;
-    }
-  }
-  if (!picked.length) {
+  const armId = armAt(data, state.axis, state.idx);
+  const cell = cellAt(data, armId, state.model);
+  const cur = cell && base && inBaseFrame(cell, base);
+  // The baseline is drawn as a ghost REFERENCE whenever it is not itself the
+  // selection. Showing one displacement alone answers "what did it do"; the
+  // page's question is "what did it do DIFFERENTLY", and that needs the thing
+  // it differs from on the same axes.
+  const ref = base && armId !== "base" ? inBaseFrame(base, base) : null;
+
+  if (!cur) {
     g.fillStyle = css("--ink-faint");
     g.font = "13px ui-sans-serif, system-ui, sans-serif";
     g.textAlign = "center";
-    g.fillText("No plans on this axis yet.", W / 2, H / 2);
+    g.fillText("This cell has not been evaluated yet.", W / 2, H / 2);
     $("distLegend").innerHTML = "";
     return;
   }
 
-  // Fit to what is actually drawn. The driven path can be an order of
-  // magnitude longer than the 4 s plan -- 187 m against 20 m on C-2's
-  // PDM-Closed -- so a fixed extent would squash one of them to nothing.
   let lo = 0, hi = 0, fwdHi = 1, fwdLo = 0;
   const scan = pts => { for (const [l, f] of pts) { lo = Math.min(lo, l); hi = Math.max(hi, l); fwdHi = Math.max(fwdHi, f); fwdLo = Math.min(fwdLo, f); } };
-  for (const p of picked) {
-    scan([p.ego]);
-    if (wantPlan) scan(p.plan);
-    // The warm-up is deliberately OUTSIDE the extent: it is the same prefix in
-    // every arm, and letting it size the box spends half the panel on the one
-    // stretch where nothing differs. It still draws, faintly, running off the
-    // bottom edge as context.
-    if (wantDriven && p.driven) scan(p.driven.slice(p.handoffIdx));
+  for (const t of [cur, ref]) {
+    if (!t) continue;
+    scan([t.ego]);
+    if (wantPlan) { scan(t.plan); if (t.fan) t.fan.forEach(scan); }
+    if (wantDriven && t.driven) scan(t.driven.slice(t.handoffIdx));
   }
-  if (wantPlan && fan) fan.forEach(scan);
   const m = Math.max((hi - lo) * 0.08, 0.7);
   lo -= m; hi += m; fwdHi *= 1.06; fwdLo -= 0.7;
+  // Frame the SCENE, not the trajectory. A tight fit around a 15 m plan crops
+  // to a patch of tarmac with no junction in it, and then the one thing the
+  // panel is for -- seeing where on the road the car went -- has nowhere to
+  // happen. Grow the box to a minimum span, keep it centred on what is drawn,
+  // and stop at the radius the map was exported with so it never opens onto
+  // blank canvas.
+  const R = (bevOf(data) || {}).radius_m || 70;
+  const grow = (a, b, min) => {
+    if (b - a >= min) return [a, b];
+    const c = (a + b) / 2;
+    return [c - min / 2, c + min / 2];
+  };
+  [lo, hi] = grow(lo, hi, MIN_SPAN_LAT);
+  [fwdLo, fwdHi] = grow(fwdLo, fwdHi, MIN_SPAN_FWD);
+  lo = Math.max(lo, -R); hi = Math.min(hi, R);
+  fwdLo = Math.max(fwdLo, -R); fwdHi = Math.min(fwdHi, R);
 
   const pad = { l: 40, r: 12, t: 12, b: 22 };
   const s = Math.min((W - pad.l - pad.r) / (hi - lo), (H - pad.t - pad.b) / (fwdHi - fwdLo));
@@ -441,104 +460,133 @@ function draw() {
   const X = l => ox - l * s;
   const Y = f => oy - f * s;
 
-  const step = fwdHi > 120 ? 50 : fwdHi > 60 ? 20 : fwdHi > 30 ? 10 : 5;
-  g.strokeStyle = css("--line-soft"); g.lineWidth = 1;
-  g.fillStyle = css("--ink-faint");
-  g.font = "10px ui-monospace, Menlo, monospace";
-  g.textAlign = "left"; g.textBaseline = "middle";
-  for (let f = step; f <= fwdHi; f += step) {
-    g.beginPath(); g.moveTo(pad.l, Y(f)); g.lineTo(W - pad.r, Y(f)); g.stroke();
-    g.fillText(`${f} m`, 4, Y(f));
-  }
-  g.strokeStyle = css("--line");
-  g.beginPath(); g.moveTo(X(0), pad.t); g.lineTo(X(0), H - pad.b); g.stroke();
-
-  const path = pts => {
+  const line = pts => {
     g.beginPath();
     pts.forEach(([l, f], i) => (i ? g.lineTo(X(l), Y(f)) : g.moveTo(X(l), Y(f))));
     g.stroke();
   };
+  const haloed = (pts, w) => {
+    const ss = g.strokeStyle, lw = g.lineWidth, al = g.globalAlpha;
+    g.strokeStyle = css("--panel"); g.lineWidth = lw + w; g.globalAlpha = al * 0.55;
+    line(pts);
+    g.strokeStyle = ss; g.lineWidth = lw; g.globalAlpha = al;
+    line(pts);
+  };
+  const egoBox = (t, fill, outline, alpha) => {
+    const [EL, EW] = (data.bev && data.bev.ego_box) || [4.515, 2.0];
+    g.save();
+    g.translate(X(t.ego[0]), Y(t.ego[1]));
+    g.rotate(-Math.PI / 2);            // every arm keeps the baseline heading
+    g.globalAlpha = alpha;
+    g.fillStyle = fill;
+    g.fillRect(-EL * s / 2, -EW * s / 2, EL * s, EW * s);
+    if (outline) {
+      g.strokeStyle = outline; g.lineWidth = 1.4; g.setLineDash([]);
+      g.strokeRect(-EL * s / 2, -EW * s / 2, EL * s, EW * s);
+    }
+    g.globalAlpha = 1;
+    g.restore();
+  };
 
-  // Clip to the plot area. The extent is fitted to the post-hand-off paths on
-  // purpose, and the shared warm-up runs several metres behind it — without a
-  // clip the canvas happily draws that tail down past the axis and the box
-  // stops meaning anything.
+  // ── the road, underneath ────────────────────────────────────────────
+  const bev = bevOf(data);
   g.save();
   g.beginPath();
   g.rect(pad.l - 2, pad.t - 2, W - pad.l - pad.r + 4, H - pad.t - pad.b + 4);
   g.clip();
-  if (wantPlan && fan) {
-    g.strokeStyle = css("--ghost"); g.globalAlpha = .45; g.lineWidth = 1.1;
-    g.setLineDash([]); fan.forEach(path); g.globalAlpha = 1;
+  if (bev) {
+    g.fillStyle = css("--road");
+    for (const lane of bev.lanes) {
+      g.beginPath();
+      lane.forEach(([l, f], i) => (i ? g.lineTo(X(l), Y(f)) : g.moveTo(X(l), Y(f))));
+      g.closePath(); g.fill();
+    }
+    g.strokeStyle = css("--roadline"); g.lineWidth = 1.2; g.setLineDash([7, 7]);
+    for (const c of bev.lane_centres) line(c);
+    g.setLineDash([]);
+    g.lineWidth = 1.6;
+    for (const c of bev.crosswalks) line(c);
+    for (const a of bev.actors) {
+      g.fillStyle = a.t === "VEHICLE" ? css("--actor") : css("--actor-2");
+      g.save();
+      g.translate(X(a.xy[0]), Y(a.xy[1]));
+      g.rotate(-(a.h + Math.PI / 2));   // see the note on egoBox's rotation
+      g.fillRect(-a.l * s / 2, -a.w * s / 2, a.l * s, a.w * s);
+      g.restore();
+    }
   }
 
-  const hex = h => [1, 3, 5].map(i => parseInt(h.slice(i, i + 2), 16));
-  const mix = (a, b, t) => a.map((c, i) => Math.round(c + (b[i] - c) * t));
-  const cNeg = hex(css("--a1")), cPos = hex(css("--a5")), cMid = hex(css("--ink-dim"));
-  const vmax = Math.max(...ax.values.map(Math.abs)) || 1;
-
-  for (const p of picked) {
-    const t = p.v / vmax;
-    const rgb = t < 0 ? mix(cMid, cNeg, -t) : mix(cMid, cPos, t);
-    const col = `rgb(${rgb.join(",")})`;
-    g.strokeStyle = col; g.fillStyle = col;
-
-    // Where the car actually went: dashed, because it is an outcome over ten
-    // seconds and the plan is an intention over four -- drawn the same way
-    // they would read as one line at two thicknesses.
-    if (wantDriven && p.driven) {
-      const after = p.driven.slice(p.handoffIdx);
-      if (p.current && p.handoffIdx > 0) {          // the shared warm-up, once
-        g.strokeStyle = css("--ghost"); g.setLineDash([2, 3]);
-        g.lineWidth = 1.2; g.globalAlpha = .6;
-        path(p.driven.slice(0, p.handoffIdx + 1));
-        g.strokeStyle = col;
-      }
-      g.setLineDash([5, 4]);
-      g.lineWidth = p.current ? 2.2 : 1.2;
-      g.globalAlpha = p.current ? .95 : .45;
-      path(after.length > 1 ? after : p.driven);
-      g.setLineDash([]);
-      // how the episode ended, at the point it ended
-      const end = p.driven[p.driven.length - 1];
-      const bad = p.cell.collided || p.cell.termination === "off_drivable";
-      g.globalAlpha = p.current ? 1 : .5;
-      if (bad) {
-        g.strokeStyle = css("--a5"); g.lineWidth = p.current ? 2.4 : 1.6;
-        const r = p.current ? 5 : 3.5;
-        g.beginPath();
-        g.moveTo(X(end[0]) - r, Y(end[1]) - r); g.lineTo(X(end[0]) + r, Y(end[1]) + r);
-        g.moveTo(X(end[0]) + r, Y(end[1]) - r); g.lineTo(X(end[0]) - r, Y(end[1]) + r);
-        g.stroke();
-        g.strokeStyle = col;
-      } else {
-        g.beginPath(); g.arc(X(end[0]), Y(end[1]), p.current ? 3.4 : 2.2, 0, 2 * Math.PI); g.stroke();
-      }
-      g.globalAlpha = 1;
+  // ── the baseline, as a reference ────────────────────────────────────
+  if (ref) {
+    egoBox(ref, css("--ghost"), null, .45);
+    g.strokeStyle = css("--ink-dim"); g.globalAlpha = .5;
+    if (wantPlan) { g.lineWidth = 1.6; g.setLineDash([]); line(ref.plan); }
+    if (wantDriven && ref.driven) {
+      g.lineWidth = 1.3; g.setLineDash([5, 4]);
+      line(ref.driven.slice(ref.handoffIdx)); g.setLineDash([]);
     }
-
-    if (wantPlan) {
-      g.lineWidth = p.current ? 3.2 : 1.5;
-      g.globalAlpha = p.current ? 1 : .55;
-      path(p.plan);
-      g.globalAlpha = 1;
-    }
-
-    // where that arm's ego stood at hand-off — the displacement itself
-    g.globalAlpha = p.current ? 1 : .6;
-    g.beginPath(); g.arc(X(p.ego[0]), Y(p.ego[1]), p.current ? 4 : 2.6, 0, 2 * Math.PI); g.fill();
     g.globalAlpha = 1;
   }
 
+  // ── the selected displacement ───────────────────────────────────────
+  const v = ax.values[state.idx];
+  const hex = h => [1, 3, 5].map(i => parseInt(h.slice(i, i + 2), 16));
+  const mix = (a, b, t) => a.map((c, i) => Math.round(c + (b[i] - c) * t));
+  const vmax = Math.max(...ax.values.map(Math.abs)) || 1;
+  const t01 = v / vmax;
+  const rgb = t01 < 0 ? mix(hex(css("--ink-dim")), hex(css("--a1")), -t01)
+                      : mix(hex(css("--ink-dim")), hex(css("--a5")), t01);
+  const col = `rgb(${rgb.join(",")})`;
+
+  if (wantPlan && cur.fan) {
+    g.strokeStyle = css("--ghost"); g.globalAlpha = .5; g.lineWidth = 1.2;
+    cur.fan.forEach(line);
+    g.globalAlpha = 1;
+  }
+  g.strokeStyle = col; g.fillStyle = col;
+  if (wantDriven && cur.driven) {
+    const after = cur.driven.slice(cur.handoffIdx);
+    if (cur.handoffIdx > 0) {                    // the shared warm-up, faintly
+      g.strokeStyle = css("--ghost"); g.setLineDash([2, 3]);
+      g.lineWidth = 1.2; g.globalAlpha = .6;
+      line(cur.driven.slice(0, cur.handoffIdx + 1));
+      g.strokeStyle = col; g.globalAlpha = 1;
+    }
+    g.setLineDash([5, 4]); g.lineWidth = 2.2;
+    haloed(after.length > 1 ? after : cur.driven, 2.4);
+    g.setLineDash([]);
+    const end = (after.length > 1 ? after : cur.driven).slice(-1)[0];
+    const bad = cell.collided || cell.termination === "off_drivable";
+    if (bad) {
+      g.strokeStyle = css("--a5"); g.lineWidth = 2.4;
+      const r = 5;
+      g.beginPath();
+      g.moveTo(X(end[0]) - r, Y(end[1]) - r); g.lineTo(X(end[0]) + r, Y(end[1]) + r);
+      g.moveTo(X(end[0]) + r, Y(end[1]) - r); g.lineTo(X(end[0]) - r, Y(end[1]) + r);
+      g.stroke(); g.strokeStyle = col;
+    } else {
+      g.lineWidth = 2; g.beginPath(); g.arc(X(end[0]), Y(end[1]), 3.6, 0, 2 * Math.PI); g.stroke();
+    }
+  }
+  if (wantPlan) { g.lineWidth = 3.2; haloed(cur.plan, 2.6); }
+  egoBox(cur, col, css("--ink"), 1);
   g.restore();
 
+  g.strokeStyle = css("--line-soft"); g.lineWidth = 1;
+  g.fillStyle = css("--ink-faint");
+  g.font = "10px ui-monospace, Menlo, monospace";
+  g.textAlign = "left"; g.textBaseline = "middle";
+  const step = fwdHi > 120 ? 50 : fwdHi > 60 ? 20 : fwdHi > 30 ? 10 : 5;
+  for (let f = step; f <= fwdHi; f += step) {
+    g.beginPath(); g.moveTo(pad.l, Y(f)); g.lineTo(W - pad.r, Y(f)); g.stroke();
+    g.fillText(`${f} m`, 4, Y(f));
+  }
+
   const u = AXIS[state.axis].unit;
-  let leg = `<span><i style="background:${css("--a1")}"></i>${-vmax} ${u}</span>`
-          + `<span><i style="background:${css("--ink-dim")}"></i>baseline</span>`
-          + `<span><i style="background:${css("--a5")}"></i>+${vmax} ${u}</span>`
-          + `<span>&#9679;&nbsp;ego at hand-off</span>`;
+  let leg = `<span><i style="background:${col}"></i>${fmt(v)} ${u} &mdash; this run</span>`;
+  if (ref) leg += `<span><i style="background:${css("--ink-dim")};opacity:.5"></i>baseline, for reference</span>`;
   if (wantPlan) leg += `<span><i class="solid"></i>plan (4 s)</span>`;
-  if (wantPlan && fan) leg += `<span><i style="background:${css("--ghost")}"></i>candidates weighed</span>`;
+  if (wantPlan && cur.fan) leg += `<span><i style="background:${css("--ghost")}"></i>candidates weighed</span>`;
   if (wantDriven) leg += `<span><i class="dash"></i>driven (whole episode)</span>`
                        + `<span>&#9675;&nbsp;ended cleanly &nbsp; &#10005;&nbsp;off-road or contact</span>`;
   $("distLegend").innerHTML = leg;
