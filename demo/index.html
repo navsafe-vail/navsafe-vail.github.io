@@ -5,13 +5,13 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>NavSafe-∞ — Hand-off perturbation explorer</title>
 <meta name="robots" content="noindex, nofollow">
-<meta name="description" content="Move the ego a few centimetres at the moment the policy takes over, and watch what it plans instead — the photorealistic front camera and the BEV, side by side, for five driving models.">
+<meta name="description" content="Explore how position and yaw at hand-off change a driving policy's plan. Compare camera views, trajectories and outcomes across five scenarios.">
 <link rel="icon" href="/favicon.svg" type="image/svg+xml">
 <link rel="alternate icon" href="/favicon.ico" sizes="16x16 32x32">
 <link rel="apple-touch-icon" href="/apple-touch-icon.png">
-<meta name="theme-color" content="#F6F5F2" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#F3F5F7" media="(prefers-color-scheme: light)">
 <meta name="theme-color" content="#191A1C" media="(prefers-color-scheme: dark)">
-<link rel="stylesheet" href="/demo/demo.css">
+<link rel="stylesheet" href="/demo/demo.css?v=20260908-4">
 </head>
 <body>
 
@@ -30,12 +30,9 @@
 <div class="wrap">
 
   <header class="hero">
-    <p class="eyebrow">Closed-loop sensitivity</p>
-    <h1 class="title serif">Move the car half a metre. Watch the plan change.</h1>
-    <p class="lede">Each run replays the logged ego through the same warm-up, displaces it
-      <strong>once</strong> on the frame the policy takes over, and hands over from there. Same scenario,
-      same traffic, same reconstruction, same seed &mdash; so whatever changes between two positions of the
-      slider is the policy's sensitivity to that pose, and nothing else.</p>
+    <h1 class="title">A small shift. A different plan.</h1>
+    <p class="lede">Change the car&rsquo;s position or heading at hand-off. Explore how each policy
+      responds, with the same scene, traffic and seed.</p>
   </header>
 
   <!-- ==================================================================
@@ -45,16 +42,23 @@
        =============================================================== -->
   <section class="rig">
     <div class="rigbar">
-      <span class="seg" id="segScenario"></span>
-      <span class="rigspace"></span>
-      <span class="seg small" id="segModel"></span>
+      <div class="picker">
+        <label for="scenarioSelect">Scenario</label>
+        <select id="scenarioSelect" aria-describedby="scenarioDetail"></select>
+        <span class="picker-detail" id="scenarioDetail"></span>
+      </div>
+      <div class="picker">
+        <label for="modelSelect">Model</label>
+        <select id="modelSelect" aria-describedby="modelDetail"></select>
+        <span class="picker-detail" id="modelDetail"></span>
+      </div>
     </div>
 
     <div class="views">
       <figure class="view">
         <figcaption>
           <span class="vtitle">Camera</span>
-          <span class="vnote">NuRec reconstruction &mdash; what the policy saw at the hand-off</span>
+          <span class="vnote">What the policy sees at hand-off</span>
           <button type="button" class="cmpbtn" id="cmpBtn"
                   title="Hold to swap both views back to the unperturbed run">Hold to compare</button>
         </figcaption>
@@ -72,12 +76,16 @@
       </figure>
       <figure class="view">
         <figcaption>
-          <span class="vtitle">Plan view</span>
-          <span class="vnote">Run&rsquo;s own numbers on the evaluator&rsquo;s nuPlan lanes, in the
-            <em>baseline</em> frame &mdash; the baseline is ghosted behind</span>
+          <span class="vtitle">Bird&rsquo;s-eye view</span>
+          <span class="vnote">Position and heading relative to the ghosted baseline</span>
           <span class="seg tiny" id="segShow"></span>
         </figcaption>
         <div class="shot bevbox"><canvas id="dist"></canvas></div>
+        <div class="mapbar" role="group" aria-label="Map layers">
+          <label><input id="lanePaths" type="checkbox"> Center paths</label>
+          <label><input id="candidatePlans" type="checkbox"> Candidate plans</label>
+          <span>Lane outlines shown · map geometry, not road markings</span>
+        </div>
         <div class="legend" id="distLegend"></div>
       </figure>
     </div>
@@ -88,7 +96,7 @@
         <p class="readline"><b id="readValue"></b> <span id="readHint"></span></p>
         <input type="range" id="slider" min="0" max="6" step="1" value="3"
                aria-label="Displacement applied on the hand-off frame">
-        <span class="ticks" id="ticks"></span>
+        <div class="ticks" id="ticks" role="group" aria-label="Choose an offset"></div>
       </div>
     </div>
 
@@ -102,7 +110,7 @@
        checkable, not only watchable. -->
   <div class="lower">
     <figure class="panel">
-      <figcaption><h2>This cell</h2>
+      <figcaption><h2>Run details</h2>
         <p class="note">Straight out of the run&rsquo;s <code>plan_records.json</code> and
           <code>navsafe_metrics.json</code>. The spread row is the one comparison the picture cannot make:
           it measures all seven displacements on this axis at once.</p></figcaption>
@@ -112,14 +120,14 @@
 
   <footer class="foot">
     <p>Seed 0, recon camera rig, LQR tracker, semi-reactive traffic, from
-      <code>/avl-west/runs/20260905-handoff-perturb-demo</code>. Two of the sweep's 54 scenarios are shown here.
+      <code>/avl-west/runs/20260905-handoff-perturb-demo</code>. Five of the sweep's 54 scenarios are shown here.
       Every displacement was screened before it was simulated &mdash; the moved ego had to stay on the drivable
-      surface and keep 0.3&nbsp;m from every other actor. The sweep is still running, so a struck-through tick is
-      a displacement that has not finished evaluating; the slider skips those rather than showing a hole.</p>
+      surface and keep 0.3&nbsp;m from every other actor. This is an exported snapshot; struck-through ticks
+      indicate displacements unavailable in this export, including those omitted by screening.</p>
   </footer>
 
 </div>
 
-<script src="/demo/demo.js"></script>
+<script src="/demo/demo.js?v=20260908-6"></script>
 </body>
 </html>

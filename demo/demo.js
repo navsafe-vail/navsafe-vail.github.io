@@ -33,9 +33,19 @@ if (themebtn) themebtn.addEventListener("click", e => {
   draw();                       // the canvas is painted, not styled
 });
 
+// Five scenarios, one per taxonomy leaf, chosen from the 19 that had finished
+// EVERY model at EVERY offset when the demo was cut -- a partial row would show
+// as a hole in the slider rather than as a finding. They are deliberately not
+// five of the same thing: a plain junction, one where the plans leave the front
+// camera's field of view, one whose lateral arms are capped because +/-1.5 m
+// put the ego off the drivable surface, one where the ego is driving the wrong
+// way, and one whose recipe inserts an actor that is not in the reconstruction.
 const SCENARIOS = [
-  { token: "58d69daf413c5d5a", label: "Intersection", sub: "C-5" },
-  { token: "3a0e2f53c9585e94", label: "Angle / T-bone", sub: "C-2" },
+  { token: "0436604d25145231", label: "Junction",        sub: "C-1" },
+  { token: "58d69daf413c5d5a", label: "Intersection",    sub: "C-5" },
+  { token: "096d823b664e5972", label: "Narrow lateral",  sub: "C-8" },
+  { token: "42a20478abeb54d5", label: "Wrong-way ego",   sub: "C-10" },
+  { token: "00c1e4eb4a045f20", label: "Inserted actor",  sub: "R-2" },
 ];
 const AXIS = {
   lateral:      { label: "Lateral",      unit: "m", pos: "left",             neg: "right" },
@@ -61,6 +71,44 @@ const CAM_LABEL = { CAM_F0: "Front", CAM_L0: "Left", CAM_R0: "Right", CAM_B0: "R
 //: in it, and the trajectory has nothing to be read against.
 const MIN_SPAN_LAT = 48, MIN_SPAN_FWD = 48;
 const bevOf = data => data && data.bev;
+const laneEdgeCache = new WeakMap();
+
+// Keep shared lane edges, but suppress connector edges buried inside another
+// surface. Probe both sides so an adjacent lane does not erase a shared edge.
+// This is a display filter on exported polygons, not a lane-type classifier.
+function visibleLaneEdges(bev) {
+  if (laneEdgeCache.has(bev)) return laneEdgeCache.get(bev);
+  const polygons = bev.lanes.map(points => ({ points,
+    minX: Math.min(...points.map(p => p[0])), maxX: Math.max(...points.map(p => p[0])),
+    minY: Math.min(...points.map(p => p[1])), maxY: Math.max(...points.map(p => p[1])),
+  }));
+  const inside = (x, y, p) => {
+    if (x <= p.minX || x >= p.maxX || y <= p.minY || y >= p.maxY) return false;
+    let yes = false;
+    for (let i = 0, j = p.points.length - 1; i < p.points.length; j = i++) {
+      const [xi, yi] = p.points[i], [xj, yj] = p.points[j];
+      if ((yi > y) !== (yj > y) && x < (xj - xi) * (y - yi) / (yj - yi) + xi) yes = !yes;
+    }
+    return yes;
+  };
+  const edges = [];
+  polygons.forEach((p, index) => {
+    p.points.forEach((a, i) => {
+      const b = p.points[(i + 1) % p.points.length];
+      const dx = b[0] - a[0], dy = b[1] - a[1], len = Math.hypot(dx, dy);
+      if (len < .01) return;
+      const n = Math.ceil(len / .75), nx = -dy / len * .12, ny = dx / len * .12;
+      for (let k = 0; k < n; k++) {
+        const t = (k + .5) / n, x = a[0] + t * dx, y = a[1] + t * dy;
+        if (polygons.some((q, j) => j !== index && inside(x + nx, y + ny, q) && inside(x - nx, y - ny, q))) continue;
+        edges.push([[a[0] + k / n * dx, a[1] + k / n * dy],
+                    [a[0] + (k + 1) / n * dx, a[1] + (k + 1) / n * dy]]);
+      }
+    });
+  });
+  laneEdgeCache.set(bev, edges);
+  return edges;
+}
 
 const $ = id => document.getElementById(id);
 const css = n => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
@@ -121,6 +169,7 @@ function inBaseFrame(cell, baseCell) {
     // arm, so it is drawn once and faintly rather than seven times.
     handoffIdx: Math.max(0, cell.handoff_idx || 0),
     ego: toBaseFrame([cell.ego_xy], b, bh)[0],
+    heading: cell.ego_heading - bh,
   };
 }
 
@@ -140,18 +189,24 @@ function segButtons(host, items, isOn, onPick) {
 // ---------------------------------------------------------------- controls
 
 function renderControls(data) {
-  segButtons($("segScenario"), SCENARIOS, s => s.token === state.token,
-    async s => { state.token = s.token; await load(); });
-
-  segButtons($("segModel"),
-    data.models.map(m => ({ id: m, label: data.model_labels[m] || m })),
-    m => m.id === state.model,
-    m => { state.model = m.id; update(); });
+  const scenario = $("scenarioSelect"), model = $("modelSelect");
+  if (!scenario.options.length) {
+    for (const s of SCENARIOS) scenario.add(new Option(`${s.label} (${s.sub})`, s.token));
+  }
+  scenario.value = state.token;
+  // Keep the controls mounted so keyboard focus survives an update.
+  if (model.dataset.models !== data.models.join(",")) {
+    model.replaceChildren(...data.models.map(m => new Option(data.model_labels[m] || m, m)));
+    model.dataset.models = data.models.join(",");
+  }
+  model.value = state.model;
+  $("scenarioDetail").textContent = `Scene ${state.token}`;
+  $("modelDetail").textContent = `${data.models.length} models available`;
 
   segButtons($("segAxis"),
     Object.keys(data.axes).map(a => {
       const n = data.axes[a].arms.filter(id => data.arms[id]).length;
-      return { id: a, label: AXIS[a].label, sub: `${n}/7`, disabled: n === 0 };
+      return { id: a, label: AXIS[a].label, disabled: n === 0 };
     }),
     a => a.id === state.axis,
     a => { state.axis = a.id; snapToRun(data); update(); });
@@ -173,13 +228,18 @@ function renderTicks(data) {
   $("ticks").innerHTML = ax.values.map((v, i) => {
     const cls = [i === state.idx ? "on" : "",
                  armAt(data, state.axis, i) ? "" : "missing"].join(" ").trim();
-    return `<span class="${cls}">${v > 0 ? "+" : ""}${v}</span>`;
+    const label = `${v > 0 ? "+" : ""}${v}`;
+    return `<button type="button" class="${cls}" style="left:${i / (ax.values.length - 1) * 100}%"
+      data-index="${i}" aria-label="${label} ${AXIS[state.axis].unit} ${AXIS[state.axis].label.toLowerCase()} offset"
+      aria-pressed="${i === state.idx}" ${armAt(data, state.axis, i) ? "" : "disabled"}>${label}</button>`;
   }).join("");
   const v = ax.values[state.idx];
   $("readValue").textContent = `${AXIS[state.axis].label} offset: ${fmt(v)} ${AXIS[state.axis].unit}`;
   $("readHint").textContent = v === 0
     ? "the unperturbed run"
-    : `to the ego's ${v > 0 ? AXIS[state.axis].pos : AXIS[state.axis].neg}, applied on the hand-off frame`;
+    : `${v > 0 ? AXIS[state.axis].pos : AXIS[state.axis].neg} at hand-off`;
+  $("slider").max = String(ax.values.length - 1);
+  $("slider").setAttribute("aria-valuetext", `${fmt(v)} ${AXIS[state.axis].unit} ${AXIS[state.axis].label.toLowerCase()} offset`);
 }
 
 // ---------------------------------------------------------------- views
@@ -406,9 +466,10 @@ function draw() {
 
   const wantPlan = state.show !== "executed";
   const wantDriven = state.show !== "plan";
+  const wantCandidates = wantPlan && $("candidatePlans").checked;
   const ax = data.axes[state.axis];
   const base = cellAt(data, "base", state.model);
-  const armId = armAt(data, state.axis, state.idx);
+  const armId = state.compare ? "base" : armAt(data, state.axis, state.idx);
   const cell = cellAt(data, armId, state.model);
   const cur = cell && base && inBaseFrame(cell, base);
   // The baseline is drawn as a ghost REFERENCE whenever it is not itself the
@@ -431,7 +492,7 @@ function draw() {
   for (const t of [cur, ref]) {
     if (!t) continue;
     scan([t.ego]);
-    if (wantPlan) { scan(t.plan); if (t.fan) t.fan.forEach(scan); }
+    if (wantPlan) { scan(t.plan); if (wantCandidates && t.fan) t.fan.forEach(scan); }
     if (wantDriven && t.driven) scan(t.driven.slice(t.handoffIdx));
   }
   const m = Math.max((hi - lo) * 0.08, 0.7);
@@ -476,13 +537,21 @@ function draw() {
     const [EL, EW] = (data.bev && data.bev.ego_box) || [4.515, 2.0];
     g.save();
     g.translate(X(t.ego[0]), Y(t.ego[1]));
-    g.rotate(-Math.PI / 2);            // every arm keeps the baseline heading
+    // Canvas x points right and y down; positive world yaw turns left.
+    g.rotate(-Math.PI / 2 - t.heading);
     g.globalAlpha = alpha;
     g.fillStyle = fill;
     g.fillRect(-EL * s / 2, -EW * s / 2, EL * s, EW * s);
     if (outline) {
       g.strokeStyle = outline; g.lineWidth = 1.4; g.setLineDash([]);
       g.strokeRect(-EL * s / 2, -EW * s / 2, EL * s, EW * s);
+      // A nose marker makes heading visible even at small map scales.
+      g.strokeStyle = css("--panel"); g.lineWidth = 1.5;
+      g.beginPath();
+      g.moveTo(EL * s * .12, -EW * s * .3);
+      g.lineTo(EL * s * .34, 0);
+      g.lineTo(EL * s * .12, EW * s * .3);
+      g.stroke();
     }
     g.globalAlpha = 1;
     g.restore();
@@ -495,23 +564,47 @@ function draw() {
   g.rect(pad.l - 2, pad.t - 2, W - pad.l - pad.r + 4, H - pad.t - pad.b + 4);
   g.clip();
   if (bev) {
-    g.fillStyle = css("--road");
-    for (const lane of bev.lanes) {
+    // Draw every outline first, then opaque surfaces: overlapping lane and
+    // connector interiors cover their seams instead of building a wire mesh.
+    const polygon = points => {
       g.beginPath();
-      lane.forEach(([l, f], i) => (i ? g.lineTo(X(l), Y(f)) : g.moveTo(X(l), Y(f))));
-      g.closePath(); g.fill();
+      points.forEach(([l, f], i) => (i ? g.lineTo(X(l), Y(f)) : g.moveTo(X(l), Y(f))));
+      g.closePath();
+    };
+    g.lineJoin = "round"; g.lineCap = "round";
+    g.strokeStyle = css("--roadline"); g.lineWidth = 1.6;
+    for (const lane of bev.lanes) { polygon(lane); g.stroke(); }
+    g.fillStyle = css("--road");
+    for (const lane of bev.lanes) { polygon(lane); g.fill(); }
+    // Preserve visible lane edges, including shared internal boundaries.
+    // One stroke pass avoids darkening shared edges where polygons coincide.
+    // These are map polygon boundaries, not inferred painted lane markings.
+    g.beginPath();
+    for (const [a, b] of visibleLaneEdges(bev)) {
+      g.moveTo(X(a[0]), Y(a[1])); g.lineTo(X(b[0]), Y(b[1]));
     }
-    g.strokeStyle = css("--roadline"); g.lineWidth = 1.2; g.setLineDash([7, 7]);
-    for (const c of bev.lane_centres) line(c);
+    g.strokeStyle = css("--roadline"); g.lineWidth = .85;
+    g.globalAlpha = .8; g.stroke(); g.globalAlpha = 1;
+    // Exported baselines include intersection connectors. They represent
+    // possible travel paths, not painted lane dividers, so keep them opt-in.
+    if ($("lanePaths").checked) {
+      g.strokeStyle = css("--roadline"); g.globalAlpha = .65;
+      g.lineWidth = .7; g.setLineDash([3, 5]);
+      for (const c of bev.lane_centres) line(c);
+      g.globalAlpha = 1;
+    }
     g.setLineDash([]);
-    g.lineWidth = 1.6;
+    g.strokeStyle = css("--roadline"); g.lineWidth = .8; g.globalAlpha = .6;
     for (const c of bev.crosswalks) line(c);
+    g.globalAlpha = 1;
     for (const a of bev.actors) {
       g.fillStyle = a.t === "VEHICLE" ? css("--actor") : css("--actor-2");
       g.save();
       g.translate(X(a.xy[0]), Y(a.xy[1]));
       g.rotate(-(a.h + Math.PI / 2));   // see the note on egoBox's rotation
       g.fillRect(-a.l * s / 2, -a.w * s / 2, a.l * s, a.w * s);
+      g.strokeStyle = css("--panel"); g.lineWidth = .6;
+      g.strokeRect(-a.l * s / 2, -a.w * s / 2, a.l * s, a.w * s);
       g.restore();
     }
   }
@@ -529,7 +622,7 @@ function draw() {
   }
 
   // ── the selected displacement ───────────────────────────────────────
-  const v = ax.values[state.idx];
+  const v = state.compare ? 0 : ax.values[state.idx];
   const hex = h => [1, 3, 5].map(i => parseInt(h.slice(i, i + 2), 16));
   const mix = (a, b, t) => a.map((c, i) => Math.round(c + (b[i] - c) * t));
   const vmax = Math.max(...ax.values.map(Math.abs)) || 1;
@@ -538,8 +631,8 @@ function draw() {
                       : mix(hex(css("--ink-dim")), hex(css("--a5")), t01);
   const col = `rgb(${rgb.join(",")})`;
 
-  if (wantPlan && cur.fan) {
-    g.strokeStyle = css("--ghost"); g.globalAlpha = .5; g.lineWidth = 1.2;
+  if (wantCandidates && cur.fan) {
+    g.strokeStyle = css("--ink-dim"); g.globalAlpha = .2; g.lineWidth = .9;
     cur.fan.forEach(line);
     g.globalAlpha = 1;
   }
@@ -572,21 +665,25 @@ function draw() {
   egoBox(cur, col, css("--ink"), 1);
   g.restore();
 
-  g.strokeStyle = css("--line-soft"); g.lineWidth = 1;
-  g.fillStyle = css("--ink-faint");
-  g.font = "10px ui-monospace, Menlo, monospace";
+  // A scale and orientation key convey distance without lines across the map.
+  const scaleM = [1, 2, 5, 10, 20, 50].filter(m => m * s <= Math.min(80, W * .22)).pop() || 1;
+  g.fillStyle = css("--panel"); g.globalAlpha = .92;
+  g.fillRect(10, H - 38, scaleM * s + 20, 32);
+  g.globalAlpha = 1; g.strokeStyle = css("--ink-dim"); g.lineWidth = 1.3;
+  g.beginPath(); g.moveTo(20, H - 19); g.lineTo(20, H - 14);
+  g.lineTo(20 + scaleM * s, H - 14); g.lineTo(20 + scaleM * s, H - 19); g.stroke();
+  g.fillStyle = css("--ink-dim"); g.font = "10px system-ui, sans-serif";
   g.textAlign = "left"; g.textBaseline = "middle";
-  const step = fwdHi > 120 ? 50 : fwdHi > 60 ? 20 : fwdHi > 30 ? 10 : 5;
-  for (let f = step; f <= fwdHi; f += step) {
-    g.beginPath(); g.moveTo(pad.l, Y(f)); g.lineTo(W - pad.r, Y(f)); g.stroke();
-    g.fillText(`${f} m`, 4, Y(f));
-  }
+  g.fillText(`${scaleM} m`, 20, H - 28);
+  g.fillStyle = css("--panel"); g.globalAlpha = .92; g.fillRect(10, 8, 120, 23);
+  g.globalAlpha = 1; g.fillStyle = css("--ink-dim");
+  g.fillText("↑ Baseline forward", 18, 20);
 
   const u = AXIS[state.axis].unit;
   let leg = `<span><i style="background:${col}"></i>${fmt(v)} ${u} &mdash; this run</span>`;
   if (ref) leg += `<span><i style="background:${css("--ink-dim")};opacity:.5"></i>baseline, for reference</span>`;
   if (wantPlan) leg += `<span><i class="solid"></i>plan (4 s)</span>`;
-  if (wantPlan && cur.fan) leg += `<span><i style="background:${css("--ghost")}"></i>candidates weighed</span>`;
+  if (wantCandidates && cur.fan) leg += `<span><i style="background:${css("--ghost")}"></i>candidate plans</span>`;
   if (wantDriven) leg += `<span><i class="dash"></i>driven (whole episode)</span>`
                        + `<span>&#9675;&nbsp;ended cleanly &nbsp; &#10005;&nbsp;off-road or contact</span>`;
   $("distLegend").innerHTML = leg;
@@ -614,7 +711,9 @@ function update() {
 }
 
 async function load() {
-  const data = await payload(state.token);
+  const token = state.token;
+  const data = await payload(token);
+  if (token !== state.token) return;
   if (!state.model || !data.models.includes(state.model)) state.model = data.models[0];
   snapToRun(data);
   update();
@@ -632,6 +731,7 @@ const setCompare = on => {
   state.compare = next;
   cmp.dataset.on = next ? "1" : "0";
   renderShots(data);
+  draw();
 };
 cmp.addEventListener("pointerdown", e => { e.preventDefault(); setCompare(true); });
 window.addEventListener("pointerup", () => setCompare(false));
@@ -640,6 +740,20 @@ cmp.addEventListener("keydown", e => { if (e.key === " " || e.key === "Enter") {
 cmp.addEventListener("keyup", e => { if (e.key === " " || e.key === "Enter") setCompare(false); });
 cmp.addEventListener("blur", () => setCompare(false));
 
+$("scenarioSelect").addEventListener("change", e => {
+  state.token = e.target.value;
+  load().catch(err => { $("capBody").textContent = `Could not load the scene: ${err.message}`; });
+});
+$("modelSelect").addEventListener("change", e => { state.model = e.target.value; update(); });
+$("lanePaths").addEventListener("change", draw);
+$("candidatePlans").addEventListener("change", draw);
+$("ticks").addEventListener("click", e => {
+  const tick = e.target.closest("button[data-index]");
+  if (!tick || tick.disabled) return;
+  state.idx = Number(tick.dataset.index);
+  update();
+  $("ticks").querySelector(`[data-index="${state.idx}"]`).focus();
+});
 $("slider").addEventListener("input", e => {
   state.idx = Number(e.target.value);
   const data = cache.get(state.token);

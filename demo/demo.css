@@ -9,12 +9,12 @@
    reader should be able to check that in pixels AND in coordinates.
    ------------------------------------------------------------------ */
 :root {
-  --bg: #F6F5F2; --panel: #FFFFFF; --panel-2: #FBFAF8;
-  --ink: #23221F; --ink-dim: #6E6A61; --ink-faint: #918D84;
-  --line: #DDD9D1; --line-soft: #EAE7E0; --ghost: #A8A49B;
+  --bg: #F3F5F7; --panel: #FFFFFF; --panel-2: #F8FAFC;
+  --ink: #253344; --ink-dim: #627183; --ink-faint: #69788A;
+  --line: #D6DEE7; --line-soft: #E7ECF1; --ghost: #A8B3BF;
   --a1: #1F4076; --a2: #52A557; --a3: #986A1E;
   --a4: #906EB7; --a5: #A7405E; --a6: #20A39D;
-  --road: #DCD8CF; --roadline: #B4AFA4; --actor: #7C7870; --actor-2: #A6A199;
+  --road: #E5EAF0; --roadline: #B9C5D2; --actor: #91A0B0; --actor-2: #B1A2BA;
   --shadow: 0 1px 2px rgba(35,34,31,.05), 0 8px 24px -16px rgba(35,34,31,.28);
   --maxw: 1360px;
   color-scheme: light;
@@ -26,7 +26,7 @@
     --line: #33353A; --line-soft: #2A2C30; --ghost: #5C5E63;
     --a1: #316CCD; --a2: #4DAC54; --a3: #A56F05;
     --a4: #AB76E2; --a5: #C05070; --a6: #07AAA3;
-    --road: #2E3237; --roadline: #474C55; --actor: #808590; --actor-2: #575C65;
+    --road: #303944; --roadline: #526173; --actor: #8796A8; --actor-2: #A296AD;
     --shadow: 0 1px 2px rgba(0,0,0,.3), 0 8px 24px -16px rgba(0,0,0,.7);
     color-scheme: dark;
   }
@@ -37,7 +37,7 @@
   --line: #33353A; --line-soft: #2A2C30; --ghost: #5C5E63;
   --a1: #316CCD; --a2: #4DAC54; --a3: #A56F05;
   --a4: #AB76E2; --a5: #C05070; --a6: #07AAA3;
-  --road: #2E3237; --roadline: #474C55; --actor: #808590; --actor-2: #575C65;
+  --road: #303944; --roadline: #526173; --actor: #8796A8; --actor-2: #A296AD;
   --shadow: 0 1px 2px rgba(0,0,0,.3), 0 8px 24px -16px rgba(0,0,0,.7);
   color-scheme: dark;
 }
@@ -87,12 +87,12 @@ nav#top .inner {
 #themebtn svg { width: 15px; height: 15px; }
 
 /* ---------- header ---------- */
-header.hero { padding: 40px 0 18px; }
+header.hero { padding: 32px 0 18px; }
 .eyebrow {
   font-size: 11px; font-weight: 700; letter-spacing: .16em; text-transform: uppercase;
   color: var(--ink-faint); margin: 0 0 10px;
 }
-h1.title { font-size: clamp(26px, 3.4vw, 40px); line-height: 1.15; margin: 0 0 14px; font-weight: 600; }
+h1.title { font-size: clamp(26px, 3.4vw, 40px); line-height: 1.15; margin: 0 0 12px; font-weight: 600; letter-spacing: -.035em; }
 .lede { max-width: 74ch; color: var(--ink-dim); margin: 0 0 6px; font-size: 15.5px; }
 .lede strong { color: var(--ink); font-weight: 600; }
 
@@ -106,21 +106,31 @@ h1.title { font-size: clamp(26px, 3.4vw, 40px); line-height: 1.15; margin: 0 0 1
   box-shadow: var(--shadow); overflow: hidden; margin: 10px 0 20px;
 }
 .rigbar {
-  display: flex; align-items: center; gap: 12px 18px; flex-wrap: wrap;
-  padding: 13px 16px; border-bottom: 1px solid var(--line-soft); background: var(--panel-2);
+  display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 24px;
+  padding: 20px 24px; border-bottom: 1px solid var(--line); background: var(--panel-2);
 }
-.rigspace { flex: 1 1 auto; }
+.picker { display: grid; gap: 6px; min-width: 0; }
+.picker label { font-size: 12px; font-weight: 600; color: var(--ink-dim); }
+.picker select {
+  width: 100%; min-width: 0; font: inherit; font-weight: 550; color: var(--ink);
+  background: var(--panel); border: 1px solid var(--line); border-radius: 7px;
+  padding: 10px 12px; cursor: pointer; text-overflow: ellipsis;
+}
+.picker-detail { font-size: 11px; color: var(--ink-faint); }
+button:focus-visible, select:focus-visible, input:focus-visible {
+  outline: 2px solid var(--a1); outline-offset: 4px;
+}
 
 .seg { display: inline-flex; flex-wrap: wrap; gap: 5px; }
 .seg button {
   appearance: none; cursor: pointer; font: inherit; font-size: 13px; line-height: 1.25;
   background: var(--panel); color: var(--ink-dim);
-  border: 1px solid var(--line); border-radius: 999px; padding: 6px 13px;
+  border: 1px solid transparent; border-radius: 5px; padding: 6px 13px;
   transition: color .12s, border-color .12s, background .12s;
 }
 .seg.small button { font-size: 12px; padding: 5px 11px; }
 .seg button:hover:not(:disabled) { color: var(--ink); border-color: var(--ghost); }
-.seg button[aria-pressed="true"] { color: var(--panel); background: var(--a1); border-color: var(--a1); }
+.seg button[aria-pressed="true"] { color: var(--a1); background: color-mix(in srgb, var(--a1) 10%, var(--panel)); border-color: color-mix(in srgb, var(--a1) 20%, var(--line)); }
 .seg button:disabled { opacity: .35; cursor: not-allowed; }
 .seg button .sub { display: block; font-size: 10px; opacity: .7; letter-spacing: .04em; }
 
@@ -175,20 +185,53 @@ h1.title { font-size: clamp(26px, 3.4vw, 40px); line-height: 1.15; margin: 0 0 1
 
 /* the control */
 .ctl {
-  display: flex; gap: 14px 22px; flex-wrap: wrap; align-items: flex-start;
-  padding: 15px 16px 13px; border-top: 1px solid var(--line-soft);
+  display: flex; gap: 14px 28px; flex-wrap: wrap; align-items: center;
+  padding: 20px 24px 22px; border-top: 1px solid var(--line-soft);
 }
-.sliderbox { flex: 1 1 380px; min-width: 260px; }
+.sliderbox { flex: 1 1 380px; min-width: 0; padding: 0 12px; }
 .readline { margin: 0 0 6px; font-size: 13.5px; color: var(--ink-dim); }
 .readline b { color: var(--ink); font-weight: 600; }
-.sliderbox input[type=range] { width: 100%; accent-color: var(--a1); margin: 0; display: block; }
-.ticks {
-  display: flex; justify-content: space-between; margin-top: 3px;
-  font: 11px/1.2 ui-monospace, SFMono-Regular, Menlo, monospace; color: var(--ink-faint);
+#readHint { display: block; font-size: 11.5px; margin-top: 2px; }
+.sliderbox input[type=range] {
+  --thumb: 18px;
+  appearance: none; -webkit-appearance: none; width: 100%; height: 26px;
+  padding: 0; border: 0; background: transparent; margin: 0; display: block; cursor: pointer;
 }
-.ticks span { flex: 1; text-align: center; }
-.ticks span.on { color: var(--ink); font-weight: 700; }
-.ticks span.missing { opacity: .3; text-decoration: line-through; }
+.sliderbox input[type=range]::-webkit-slider-runnable-track { height: 4px; background: var(--line); border-radius: 2px; }
+.sliderbox input[type=range]::-moz-range-track { height: 4px; background: var(--line); border-radius: 2px; }
+.sliderbox input[type=range]::-webkit-slider-thumb {
+  -webkit-appearance: none; width: var(--thumb); height: var(--thumb); margin-top: -7px;
+  border: 3px solid var(--panel); border-radius: 50%; background: var(--a1); box-shadow: 0 0 0 1px var(--a1);
+}
+.sliderbox input[type=range]::-moz-range-thumb {
+  box-sizing: border-box; width: var(--thumb); height: var(--thumb);
+  border: 3px solid var(--panel); border-radius: 50%; background: var(--a1); box-shadow: 0 0 0 1px var(--a1);
+}
+.ticks {
+  position: relative; height: 30px; margin: 0 9px;
+}
+.ticks button {
+  position: absolute; transform: translateX(-50%); top: 0; min-width: 32px; height: 30px;
+  padding: 5px 3px; border: 0; border-radius: 4px; background: transparent;
+  font: inherit; font-size: 12px; line-height: 1.2; font-variant-numeric: tabular-nums;
+  color: var(--ink-dim); cursor: pointer;
+}
+.ticks button::before { content: ""; position: absolute; top: 0; left: 50%; height: 4px; width: 1px; background: var(--line); }
+.ticks button.on { color: var(--a1); font-weight: 700; background: color-mix(in srgb, var(--a1) 8%, var(--panel)); }
+.ticks button.missing { opacity: .4; text-decoration: line-through; cursor: not-allowed; }
+.ticks button:hover:not(:disabled) { background: var(--panel-2); }
+@media (max-width: 600px) {
+  .wrap { padding: 0 14px; }
+  nav#top .inner { padding: 0 14px; gap: 12px; }
+  .navtag { display: none; }
+  .rigbar { grid-template-columns: minmax(0, 1fr); gap: 14px; padding: 16px; }
+  .ctl { padding: 16px; gap: 16px; }
+  .sliderbox { flex-basis: 100%; }
+  .readline { font-size: 13px; }
+  footer.foot code { overflow-wrap: anywhere; }
+  table.read th { white-space: normal; }
+}
+@media (prefers-reduced-motion: reduce) { .seg button { transition: none; } }
 
 /* the computed caption — the sentence that says what to look at */
 .caption {
@@ -225,6 +268,10 @@ h1.title { font-size: clamp(26px, 3.4vw, 40px); line-height: 1.15; margin: 0 0 1
    row; the canvas is sized in CSS and the script matches its backing store to
    devicePixelRatio, which is what keeps the vector crisp. */
 .bevbox { padding: 0; }
+.mapbar { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 18px; padding: 10px 14px; border-top: 1px solid var(--line-soft); }
+.mapbar label { display: inline-flex; align-items: center; gap: 6px; font-size: 12px; color: var(--ink-dim); cursor: pointer; }
+.mapbar input { margin: 0; accent-color: var(--a1); }
+.mapbar span { font-size: 10.5px; color: var(--ink-faint); }
 #dist { display: block; width: 100%; height: 100%; background: var(--panel-2); }
 .legend { display: flex; flex-wrap: wrap; gap: 4px 14px; padding: 9px 14px 11px; font-size: 11.5px; color: var(--ink-dim); border-top: 1px solid var(--line-soft); }
 .legend i { display: inline-block; width: 15px; height: 3px; border-radius: 2px; margin-right: 6px; vertical-align: middle; }
