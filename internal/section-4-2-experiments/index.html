@@ -1,0 +1,208 @@
+<!doctype html>
+<html lang="zh-Hans">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>NavSafe 4.2 实验摘要 · NavSafe-∞ internal</title>
+<meta name="robots" content="noindex, nofollow">
+<meta name="description" content="内部工作文档：NavSafe 4.2 节的三个实验 —— 开环与闭环排名是否一致、受控偏移后能否恢复、危险出现后能否及时反应。不属于公开发布内容。">
+<link rel="icon" href="/favicon.svg" type="image/svg+xml">
+<link rel="alternate icon" href="/favicon.ico" sizes="16x16 32x32">
+<link rel="apple-touch-icon" href="/apple-touch-icon.png">
+<meta name="theme-color" content="#F6F5F2" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#191A1C" media="(prefers-color-scheme: dark)">
+<link rel="stylesheet" href="/internal/plan.css">
+</head>
+<body>
+
+<nav id="top" lang="en"><div class="inner">
+  <a class="brand" href="/"><img src="/logo.png" alt=""><em>Nav</em>Safe-∞</a>
+  <a class="navtag" href="/internal/">Internal</a>
+  <span class="navspace"></span>
+  <a class="backlink" href="/internal/">&larr;&nbsp;All internal plans</a>
+  <a class="backlink" href="/">Public site&nbsp;&nearr;</a>
+  <button id="themebtn" title="Toggle light / dark" aria-label="Toggle light / dark">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+      <circle cx="12" cy="12" r="4.2"/><path d="M12 2.4v2.2M12 19.4v2.2M2.4 12h2.2M19.4 12h2.2M5.2 5.2l1.6 1.6M17.2 17.2l1.6 1.6M18.8 5.2l-1.6 1.6M6.8 17.2l-1.6 1.6"/>
+    </svg>
+  </button>
+</div></nav>
+
+<!-- =====================================================================
+     4.2 节实验摘要。Source of record:
+     NexusSim/navsafe_section_4_2_experiment_summary.md —— 正文照原文中文，
+     只有导航、Part 标签等页面框架沿用站点其余部分的英文。
+     ===================================================================== -->
+<main>
+<div class="planwrap">
+
+  <aside class="plantoc">
+    <p class="tt">目录</p>
+    <nav id="tocnav"></nav>
+  </aside>
+
+  <div class="plandocs">
+  <article class="plandoc">
+
+    <header>
+      <p class="eyebrow" lang="en">Internal · experiment plan</p>
+      <h1 class="doctitle serif">NavSafe 4.2 实验摘要</h1>
+      <p class="docsub">先检查开环评价与闭环表现的对应关系，再通过少量代表性场景，定性展示偏移恢复与危险响应中的行为差异。</p>
+      <pre class="planpre"><b>实验 1</b>  OL PDMS  vs  CL SR      固定事件集，各模型共用        <span class="cm">定量</span>
+<b>实验 2</b>  受控横向偏移            还有没有安全恢复 / 有没有选对   <span class="cm">代表性案例</span>
+<b>实验 3</b>  t&#8320; 引入危险             反应延迟 L、安全余量 M、三条件   <span class="cm">代表性案例</span></pre>
+    </header>
+
+    <!-- ---------------------------- PART 1 ---------------------------- -->
+    <section id="x-exp">
+      <div class="parthead">
+        <p class="pk" lang="en">Part I</p>
+        <h2 class="serif">三个实验</h2>
+        <p>一个在固定事件集上的定量实验，两个按代表性案例组织的对照实验 —— 除被测的那一项外，其余条件全部保持一致。</p>
+      </div>
+    </section>
+
+    <section id="x-1">
+      <h3><span class="no">1</span> 开环排名与闭环排名是否一致</h3>
+      <p>选定同一批事件，对每个模型分别做：</p>
+      <ul>
+        <li>在每个事件开始时查询一次模型，计算预测轨迹的 PDMS。</li>
+        <li>从同一个事件初始条件开始运行完整闭环，记录是否成功。</li>
+        <li>汇总该模型的平均 PDMS 和闭环成功率 SR。</li>
+        <li>每个模型画成散点图上的一个点：横轴为 OL PDMS，纵轴为 CL SR，展示置信区间并检查排名反转。</li>
+      </ul>
+      <p>各模型使用相同的事件集和环境种子。跨种子先在事件内平均，再在事件间平均。闭环结果尽量复用 leaderboard 的评测结果；如果使用子集，应固定并说明选择方式。</p>
+    </section>
+
+    <section id="x-2">
+      <h3><span class="no">2</span> 车偏离日志位置以后，是否还能恢复</h3>
+      <p>选择少量代表性场景，保持场景内容、路线和非目标交通不变，对 ego 施加受控横向偏移，再渲染相应观测。ego 位姿、相机位姿及相关自身状态保持一致，偏移范围应位于渲染有效范围内。</p>
+      <p>分成两层：</p>
+      <ul>
+        <li><b>单次查询诊断：</b>偏移后，模型有没有提出安全恢复轨迹；如果能访问多个候选及其评分，进一步区分“没有安全候选”与“有安全候选但选错”。</li>
+        <li><b>闭环执行验证：</b>从该偏移状态开始执行，检查最终能否完成事件。</li>
+      </ul>
+      <p>每个选中场景测试原始位置与几个受控偏移，展示观测画面、候选轨迹及评分（若可用）、最终选择和闭环执行结果。</p>
+      <div class="plannote plain">
+        <span class="nk">不要求</span>
+        对 benchmark 每一个场景进行偏移扫描，也不要求统计全量偏移条件下的 SR。
+      </div>
+    </section>
+
+    <section id="x-3">
+      <h3><span class="no">3</span> 危险出现后，模型能否及时、正确地反应</h3>
+      <p>选择少量代表性场景，在 t&#8320; 引入受控、与驾驶决策有关的变化，例如行人进入车道或前车制动。</p>
+      <p>记录第一次有效的制动、让行或避让，报告干预到反应的延迟，以及相对于事件特定的最晚安全反应时间的余量。快速但不安全的动作变化，不算有效反应。</p>
+
+      <h4>配对条件与无关变化控制</h4>
+      <p>对选中的场景设置三个条件：</p>
+      <div class="planscroll">
+        <table class="plantab">
+          <thead><tr><th>条件</th><th>示例</th><th>检查内容</th></tr></thead>
+          <tbody>
+            <tr>
+              <td>基准</td>
+              <td>行人保持在安全区域，无新增危险</td>
+              <td>正常驾驶行为</td>
+            </tr>
+            <tr>
+              <td>危险干预</td>
+              <td>行人在 t&#8320; 向车道移动，形成路径冲突</td>
+              <td>是否及时、正确地制动、让行或避让</td>
+            </tr>
+            <tr>
+              <td>无关变化控制</td>
+              <td>行人在 t&#8320; 沿有物理隔离的人行道移动，始终不与 ego 行驶路径形成冲突</td>
+              <td>是否出现不必要的制动或避让</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+      <p>“无关”指变化不要求 ego 改变驾驶决策，并非变化不可见。需确认控制条件没有引入遮挡、通行权变化或其他合理减速原因。</p>
+      <p>各条件保持初始状态、路线、背景、非目标交通和环境种子一致，仅改变目标干预，并核对干预前的状态一致性。比较基准与无关变化控制的速度曲线和执行轨迹，检查模型是否有选择性地回应危险；不要求两组输出完全相同。</p>
+
+      <h4>案例指标与结果</h4>
+      <div class="planscroll">
+        <table class="plantab">
+          <thead><tr><th>指标／结果</th><th>定义</th><th>含义</th></tr></thead>
+          <tbody>
+            <tr>
+              <td>有效反应延迟 <b>L</b></td>
+              <td><code>L = t_resp − t&#8320;</code></td>
+              <td>从危险出现到首次有效反应经过多久</td>
+            </tr>
+            <tr>
+              <td>安全时间余量 <b>M</b></td>
+              <td><code>M = t_latest − t_resp</code></td>
+              <td>首次有效反应距离最晚安全反应时刻还有多久</td>
+            </tr>
+            <tr>
+              <td>事件结果</td>
+              <td>成功／失败／超时／无效</td>
+              <td>该次闭环执行的最终结果</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+      <p>其中，<code>t_resp</code> 为首次有效反应时间，<code>t_latest</code> 为按预先规定方法确定的最晚安全反应时间。M 为正表示早于该截止时间，为负表示晚于该截止时间。</p>
+      <p>无关变化控制不计算 L 和 M，主要展示行为变化。危险条件下始终没有有效反应的运行标记为“未响应”，不将其作为正常响应时间参与平均；无需另设“未有效响应比例”指标。单次运行报告事件结果，多次运行汇总时才报告 SR。</p>
+    </section>
+
+    <!-- ---------------------------- PART 2 ---------------------------- -->
+    <section id="x-bounds">
+      <div class="parthead">
+        <p class="pk" lang="en">Part II</p>
+        <h2 class="serif">范围、判据，以及与原文的差别</h2>
+        <p>每个实验能与不能支撑什么结论，动手之前必须先固定下来的判断标准，以及本摘要相对原文补充了什么。</p>
+      </div>
+    </section>
+
+    <section id="x-4">
+      <h3><span class="no">4</span> 实验范围与结论边界</h3>
+      <ul>
+        <li><b>实验 1：</b>使用一批固定、各模型共用的事件，分析该事件集上的 OL–CL 对应关系。</li>
+        <li><b>实验 2、3：</b>采用少量代表性场景做 qualitative demonstration，不需要对 benchmark 每一个场景都测试，但选中场景应完成相应对照。</li>
+        <li>定性展示可以包含 L、M 等数值，以及画面、轨迹和速度曲线。说明场景选择依据，尽量展示成功与失败的对照。</li>
+        <li>这些案例用于展示和定位具体行为，不据此推断某类失败在整个 benchmark 中的发生比例，或模型普遍具有／缺乏某种能力。</li>
+      </ul>
+    </section>
+
+    <section id="x-5">
+      <h3><span class="no">5</span> 实施前仍需明确的判据</h3>
+      <ul>
+        <li><b>什么样的候选轨迹算安全恢复：</b>固定检查时域、事件约束和可执行性要求，使用独立判据，不以模型自身评分代替安全标签。</li>
+        <li><b>什么算有效反应：</b>按事件固定检测规则，并明确测量计划输出还是实际执行动作。</li>
+        <li><b>最晚安全反应时间如何求得：</b>固定参考应对方式、动力学与安全约束，并说明该截止时间适用的范围。</li>
+      </ul>
+    </section>
+
+    <section id="x-6">
+      <h3><span class="no">6</span> 与原文的关系</h3>
+      <p>原文已有 OL–CL 对比、受控横向偏移、候选与选择诊断、危险干预、有效反应延迟、安全时间余量及无关变化控制。</p>
+      <p>本摘要将这些思路具体化为实验步骤，并补充了从受控偏移状态启动闭环、三条件控制示例、速度与轨迹对照、未响应处理方式。实验 2、3 按代表性案例组织，不额外要求全量测试。</p>
+    </section>
+
+    <div class="planfoot" lang="en">
+      Internal working document — not part of the public release.
+    </div>
+
+  </article>
+  </div>
+</div>
+</main>
+
+<script src="/internal/plan.js"></script>
+<script>
+initToc([
+  ["part", "#x-exp",    "实验"],
+  ["",     "#x-1",      "1 · 开环 vs 闭环排名"],
+  ["",     "#x-2",      "2 · 偏移恢复"],
+  ["",     "#x-3",      "3 · 危险响应"],
+  ["part", "#x-bounds", "范围与判据"],
+  ["",     "#x-4",      "4 · 范围与结论边界"],
+  ["",     "#x-5",      "5 · 待明确的判据"],
+  ["",     "#x-6",      "6 · 与原文的关系"],
+]);
+</script>
+</body>
+</html>
