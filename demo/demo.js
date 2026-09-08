@@ -63,8 +63,50 @@ const TERM = {
 };
 
 const cache = new Map();        // token -> payload
-const state = { token: SCENARIOS[0].token, model: null, axis: "lateral", idx: 3,
+const multiPolicy = true;
+const selectedPolicies = new Set(["recogdrive_il", "recogdrive_rl"]);
+const policyPalette = ["#465365", "#CB5639", "#218577", "#985AC1", "#AD7B0B", "#CD5290", "#487642", "#DB452D", "#256CC0"];
+const policyColor = (data, model) => policyPalette[data.models.indexOf(model) % policyPalette.length];
+const state = { token: SCENARIOS[0].token, model: "recogdrive_il", model2: "recogdrive_rl", axis: "lateral", idx: 3,
                 compare: false, cam: "auto", show: "both" };
+if (multiPolicy) state.show = "plan";
+
+function policyRows(data, arm) {
+  // Every policy must use the map's ONE frame, never its own baseline pose.
+  const common = data.bev ? { ego_xy: data.bev.origin_world, ego_heading: data.bev.heading_world }
+    : cellAt(data, "base", data.models[0]);
+  return [...selectedPolicies].filter(m => data.models.includes(m)).map(model => {
+    const cell = cellAt(data, arm, model);
+    return { model, cell, cur: cell && common ? inBaseFrame(cell, common) : null };
+  });
+}
+
+function renderPolicyControls(data) {
+  if (!data.models.includes(state.model)) state.model = data.models[0];
+  if (!data.models.includes(state.model2) || state.model2 === state.model)
+    state.model2 = data.models.find(m => m !== state.model);
+  selectedPolicies.clear();
+  selectedPolicies.add(state.model); selectedPolicies.add(state.model2);
+  for (const [id, value, other] of [["modelSelect", state.model, state.model2], ["modelSelect2", state.model2, state.model]]) {
+    const select = $(id);
+    if (select.dataset.models !== data.models.join(",")) {
+      select.replaceChildren(...data.models.map(m => new Option(data.model_labels[m] || m, m)));
+      select.dataset.models = data.models.join(",");
+    }
+    select.value = value;
+    for (const option of select.options) option.disabled = option.value === other;
+    select.style.borderColor = policyColor(data, value);
+  }
+  $("modelDetail").textContent = "Camera and BEV";
+  $("modelDetail2").textContent = "Overlaid in the same BEV";
+}
+
+function renderPolicySummary(data) {
+  const rows = policyRows(data, armAt(data, state.axis, state.idx));
+  $("capKicker").textContent = `${rows.length} policies · ${AXIS[state.axis].label} ${fmt(data.axes[state.axis].values[state.idx])} ${AXIS[state.axis].unit}`;
+  $("capBody").textContent = "The same offset is applied to every selected policy. Solid lines show the hand-off plan; dashed lines show the executed path. Colors stay fixed as you move the slider.";
+  $("readout").innerHTML = '<tr><th>Policy</th><th>Driving score</th><th>Outcome</th></tr>' + rows.map(r => `<tr><td style="color:${policyColor(data,r.model)}">${data.model_labels[r.model] || r.model}</td><td>${r.cell?.driving_score ?? "—"}</td><td>${r.cur ? (r.cell.termination || r.cell.status || "—") : "Unavailable at this offset"}</td></tr>`).join("");
+}
 const CAM_LABEL = { CAM_F0: "Front", CAM_L0: "Left", CAM_R0: "Right", CAM_B0: "Rear" };
 //: How much ground the plan view always shows, in metres. Chosen so a junction
 //: fits: below roughly this the panel crops to a patch of road with no context
@@ -189,6 +231,7 @@ function segButtons(host, items, isOn, onPick) {
 // ---------------------------------------------------------------- controls
 
 function renderControls(data) {
+  if (multiPolicy) renderPolicyControls(data);
   const scenario = $("scenarioSelect"), model = $("modelSelect");
   if (!scenario.options.length) {
     for (const s of SCENARIOS) scenario.add(new Option(`${s.label} (${s.sub})`, s.token));
@@ -201,7 +244,7 @@ function renderControls(data) {
   }
   model.value = state.model;
   $("scenarioDetail").textContent = `Scene ${state.token}`;
-  $("modelDetail").textContent = `${data.models.length} models available`;
+
 
   segButtons($("segAxis"),
     Object.keys(data.axes).map(a => {
@@ -472,13 +515,14 @@ function draw() {
   const armId = state.compare ? "base" : armAt(data, state.axis, state.idx);
   const cell = cellAt(data, armId, state.model);
   const cur = cell && base && inBaseFrame(cell, base);
+  const policies = multiPolicy ? policyRows(data, armId) : [{model: state.model, cell, cur}];
   // The baseline is drawn as a ghost REFERENCE whenever it is not itself the
   // selection. Showing one displacement alone answers "what did it do"; the
   // page's question is "what did it do DIFFERENTLY", and that needs the thing
   // it differs from on the same axes.
-  const ref = base && armId !== "base" ? inBaseFrame(base, base) : null;
+  const ref = !multiPolicy && base && armId !== "base" ? inBaseFrame(base, base) : null;
 
-  if (!cur) {
+  if (!policies.some(p => p.cur)) {
     g.fillStyle = css("--ink-faint");
     g.font = "13px ui-sans-serif, system-ui, sans-serif";
     g.textAlign = "center";
@@ -489,7 +533,9 @@ function draw() {
 
   let lo = 0, hi = 0, fwdHi = 1, fwdLo = 0;
   const scan = pts => { for (const [l, f] of pts) { lo = Math.min(lo, l); hi = Math.max(hi, l); fwdHi = Math.max(fwdHi, f); fwdLo = Math.min(fwdLo, f); } };
-  for (const t of [cur, ref]) {
+  // Fit all selected policies and all offsets, so sliding does not move the map.
+  const framing = multiPolicy ? data.axes[state.axis].arms.flatMap(a => policyRows(data, a).map(p => p.cur)) : [cur, ref];
+  for (const t of framing) {
     if (!t) continue;
     scan([t.ego]);
     if (wantPlan) { scan(t.plan); if (wantCandidates && t.fan) t.fan.forEach(scan); }
@@ -631,6 +677,11 @@ function draw() {
                       : mix(hex(css("--ink-dim")), hex(css("--a5")), t01);
   const col = `rgb(${rgb.join(",")})`;
 
+  for (const entry of policies) {
+  const {cur, cell} = entry;
+  if (!cur) continue;
+  const col = multiPolicy ? policyColor(data, entry.model) : `rgb(${rgb.join(",")})`;
+
   if (wantCandidates && cur.fan) {
     g.strokeStyle = css("--ink-dim"); g.globalAlpha = .2; g.lineWidth = .9;
     cur.fan.forEach(line);
@@ -663,6 +714,7 @@ function draw() {
   }
   if (wantPlan) { g.lineWidth = 3.2; haloed(cur.plan, 2.6); }
   egoBox(cur, col, css("--ink"), 1);
+  }
   g.restore();
 
   // A scale and orientation key convey distance without lines across the map.
@@ -683,10 +735,11 @@ function draw() {
   let leg = `<span><i style="background:${col}"></i>${fmt(v)} ${u} &mdash; this run</span>`;
   if (ref) leg += `<span><i style="background:${css("--ink-dim")};opacity:.5"></i>baseline, for reference</span>`;
   if (wantPlan) leg += `<span><i class="solid"></i>plan (4 s)</span>`;
-  if (wantCandidates && cur.fan) leg += `<span><i style="background:${css("--ghost")}"></i>candidate plans</span>`;
+  if (wantCandidates && cur?.fan) leg += `<span><i style="background:${css("--ghost")}"></i>candidate plans</span>`;
   if (wantDriven) leg += `<span><i class="dash"></i>driven (whole episode)</span>`
                        + `<span>&#9675;&nbsp;ended cleanly &nbsp; &#10005;&nbsp;off-road or contact</span>`;
   $("distLegend").innerHTML = leg;
+  if (multiPolicy) $("distLegend").innerHTML = policies.map(p => `<span><i style="background:${policyColor(data,p.model)}"></i>${data.model_labels[p.model] || p.model}${p.cur ? "" : " — unavailable"}</span>`).join("") + (wantPlan ? '<span><i class="solid"></i>Hand-off plan</span>' : '') + (wantDriven ? '<span><i class="dash"></i>Executed path</span>' : '');
 
   segButtons($("segShow"),
     [{ id: "both", label: "Both" }, { id: "plan", label: "Plan only" },
@@ -703,8 +756,7 @@ function update() {
   renderControls(data);
   renderTicks(data);
   renderShots(data);
-  renderCaption(data);
-  renderReadout(data);
+  renderPolicySummary(data);
   draw();
   $("slider").value = String(state.idx);
   $("cmpBtn").disabled = armAt(data, state.axis, state.idx) === "base" || !data.arms.base;
@@ -744,7 +796,27 @@ $("scenarioSelect").addEventListener("change", e => {
   state.token = e.target.value;
   load().catch(err => { $("capBody").textContent = `Could not load the scene: ${err.message}`; });
 });
-$("modelSelect").addEventListener("change", e => { state.model = e.target.value; update(); });
+$("modelSelect").addEventListener("change", e => {
+  if (e.target.value !== state.model2) state.model = e.target.value;
+  update();
+});
+$("modelSelect2").addEventListener("change", e => {
+  if (e.target.value !== state.model) state.model2 = e.target.value;
+  update();
+});
+if (multiPolicy) {
+  $("exportBev").addEventListener("click", () => {
+    const data = cache.get(state.token), source = $("dist"), out = document.createElement("canvas");
+    const ratio = 2, rows = policyRows(data, armAt(data,state.axis,state.idx));
+    const width = Math.max(960, source.clientWidth), height = width * source.height / source.width;
+    out.width = width * ratio; out.height = (height + 76 + rows.length * 24) * ratio;
+    const g = out.getContext("2d"); g.fillStyle = css("--panel"); g.fillRect(0,0,out.width,out.height);
+    g.drawImage(source,0,0,out.width,height*ratio); g.scale(ratio,ratio); g.font = "14px system-ui";
+    g.fillStyle = css("--ink"); g.fillText(`${state.token} | ${AXIS[state.axis].label} ${fmt(data.axes[state.axis].values[state.idx])} ${AXIS[state.axis].unit} | ${state.show}`,16,height+26);
+    rows.forEach((r,i) => {g.fillStyle=policyColor(data,r.model);g.fillText(`${data.model_labels[r.model]}${r.cur ? "" : " (unavailable)"}`,16,height+52+i*24);});
+    const a=document.createElement("a");a.download=`bev-${state.token}-${armAt(data,state.axis,state.idx)}.png`;a.href=out.toDataURL("image/png");a.click();
+  });
+}
 $("lanePaths").addEventListener("change", draw);
 $("candidatePlans").addEventListener("change", draw);
 $("ticks").addEventListener("click", e => {

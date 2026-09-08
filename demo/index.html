@@ -11,7 +11,7 @@
 <link rel="apple-touch-icon" href="/apple-touch-icon.png">
 <meta name="theme-color" content="#F3F5F7" media="(prefers-color-scheme: light)">
 <meta name="theme-color" content="#191A1C" media="(prefers-color-scheme: dark)">
-<link rel="stylesheet" href="/demo/demo.css?v=20260908-4">
+<link rel="stylesheet" href="/demo/demo.css?v=20260908-10">
 </head>
 <body>
 
@@ -48,9 +48,14 @@
         <span class="picker-detail" id="scenarioDetail"></span>
       </div>
       <div class="picker">
-        <label for="modelSelect">Model</label>
+        <label for="modelSelect">Model 1</label>
         <select id="modelSelect" aria-describedby="modelDetail"></select>
         <span class="picker-detail" id="modelDetail"></span>
+      </div>
+      <div class="picker">
+        <label for="modelSelect2">Model 2</label>
+        <select id="modelSelect2" aria-describedby="modelDetail2"></select>
+        <span class="picker-detail" id="modelDetail2"></span>
       </div>
     </div>
 
@@ -58,7 +63,7 @@
       <figure class="view">
         <figcaption>
           <span class="vtitle">Camera</span>
-          <span class="vnote">What the policy sees at hand-off</span>
+          <span class="vnote">Model 1 camera at hand-off</span>
           <button type="button" class="cmpbtn" id="cmpBtn"
                   title="Hold to swap both views back to the unperturbed run">Hold to compare</button>
         </figcaption>
@@ -77,8 +82,9 @@
       <figure class="view">
         <figcaption>
           <span class="vtitle">Bird&rsquo;s-eye view</span>
-          <span class="vnote">Position and heading relative to the ghosted baseline</span>
+          <span class="vnote">Two policies, one scene frame and one shared offset</span>
           <span class="seg tiny" id="segShow"></span>
+          <button class="exportbtn" id="exportBev" type="button">Save BEV image</button>
         </figcaption>
         <div class="shot bevbox"><canvas id="dist"></canvas></div>
         <div class="mapbar" role="group" aria-label="Map layers">
@@ -111,9 +117,8 @@
   <div class="lower">
     <figure class="panel">
       <figcaption><h2>Run details</h2>
-        <p class="note">Straight out of the run&rsquo;s <code>plan_records.json</code> and
-          <code>navsafe_metrics.json</code>. The spread row is the one comparison the picture cannot make:
-          it measures all seven displacements on this axis at once.</p></figcaption>
+        <p class="note">Both policies at the selected offset, from <code>plan_records.json</code> and
+          <code>navsafe_metrics.json</code>.</p></figcaption>
       <table class="read"><tbody id="readout"></tbody></table>
     </figure>
   </div>
@@ -128,6 +133,6 @@
 
 </div>
 
-<script src="/demo/demo.js?v=20260908-6"></script>
+<script src="/demo/demo.js?v=20260908-10"></script>
 </body>
 </html>

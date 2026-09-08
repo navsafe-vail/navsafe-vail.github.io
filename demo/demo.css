@@ -296,3 +296,11 @@ table.read tr:last-child th, table.read tr:last-child td { border-bottom: 0; }
 
 footer.foot { color: var(--ink-faint); font-size: 12.5px; padding: 30px 0 46px; margin-top: 26px; border-top: 1px solid var(--line-soft); }
 footer.foot code { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 12px; }
+
+/* Two policy selectors share the existing demo toolbar. */
+.rigbar { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 18px; }
+.exportbtn { justify-self: end; padding: 5px 10px; background: var(--panel); color: var(--ink-dim); border: 1px solid var(--line); border-radius: 6px; cursor: pointer; }
+.view > figcaption .exportbtn { grid-column: 2; grid-row: 1; font-size: 11px; }
+table.read { table-layout: fixed; }
+table.read th { width: auto; white-space: normal; }
+@media (max-width: 700px) { .rigbar { grid-template-columns: minmax(0, 1fr); } }
